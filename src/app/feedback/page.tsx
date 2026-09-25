@@ -26,6 +26,7 @@ function FeedbackContent() {
   const [rating, setRating] = useState<string>("LOVED");
   const [elsewhereName, setElsewhereName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -59,7 +60,8 @@ function FeedbackContent() {
         setError(data.error ?? "Couldn't save your check-in");
         return;
       }
-      router.push("/");
+      setSaved(true);
+      setTimeout(() => router.push("/"), 700);
     } finally {
       setBusy(false);
     }
@@ -139,10 +141,11 @@ function FeedbackContent() {
       <button
         type="button"
         onClick={save}
-        disabled={!canSave}
-        className="h-14 rounded-[14px] bg-primary text-white flex items-center justify-center text-[17px] font-semibold disabled:opacity-60"
+        disabled={!canSave || saved}
+        className="h-14 rounded-[14px] flex items-center justify-center text-[17px] font-semibold disabled:opacity-100"
+        style={{ background: saved ? "var(--olive)" : "var(--primary)", color: "#FFFFFF" }}
       >
-        {busy ? "Saving…" : "Save"}
+        {saved ? "Saved" : busy ? "Saving…" : "Save"}
       </button>
     </div>
   );

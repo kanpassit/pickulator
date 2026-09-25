@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import BottomNav from "@/components/BottomNav";
 import NotificationBell from "@/components/NotificationBell";
+import { RATING_LABELS } from "@/lib/ratingLabels";
 
 type Member = { id: string; displayName: string; initial: string; tintColor: string; userId: string | null };
 type ClosedOccasion = {
@@ -11,6 +12,7 @@ type ClosedOccasion = {
   type: string;
   closedAt: string | null;
   result: { chosenName: string } | null;
+  ratingSummary: { rating: string; count: number }[];
 };
 type Group = { id: string; name: string; hostUserId: string; members: Member[]; occasions: ClosedOccasion[] };
 type Me = { id: string; name: string; email: string } | null;
@@ -355,9 +357,23 @@ export default function Home() {
                       key={o.id}
                       className={`flex items-center justify-between py-3 ${i < active.occasions.length - 1 ? "border-b border-border" : ""}`}
                     >
-                      <div className="flex flex-col gap-0.5">
+                      <div className="flex flex-col gap-1">
                         <div className="text-base font-semibold">{chosenName}</div>
                         <div className="text-sm text-muted">{o.type} · {formatDate(o.closedAt)}</div>
+                        {o.ratingSummary.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mt-0.5">
+                            {o.ratingSummary.map((r) => (
+                              <div
+                                key={r.rating}
+                                className="px-2 py-0.5 rounded-full text-[11px] font-semibold"
+                                style={{ background: RATING_LABELS[r.rating]?.bg ?? "var(--tint-tan)" }}
+                              >
+                                {RATING_LABELS[r.rating]?.label ?? r.rating}
+                                {r.count > 1 ? ` ×${r.count}` : ""}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <div className="flex items-center gap-3 shrink-0">
                         <Link href={`/result?occasionId=${o.id}`} className="text-sm font-semibold text-primary">

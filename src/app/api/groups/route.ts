@@ -16,7 +16,7 @@ export async function GET() {
       members: { orderBy: { createdAt: "asc" } },
       occasions: {
         where: { status: "CLOSED" },
-        include: { result: true },
+        include: { result: true, feedback: { select: { rating: true } } },
         orderBy: { closedAt: "desc" },
         take: 5,
       },
@@ -24,7 +24,25 @@ export async function GET() {
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json({ groups });
+  // Check-in ratings (Feedback.rating) were previously write-only - nothing
+  // ever read them back. Summarize them here (how many rated each way) so
+  // Recent nights / History can show what the group actually thought,
+  // instead of the data going nowhere once someone hits Save.
+  const groupsOut = groups.map((g) => ({
+    ...g,
+    occasions: g.occasions.map(({ feedback, ...occasion }) => {
+      const counts = new Map<string, number>();
+      for (const f of feedback) {
+        if (f.rating) counts.set(f.rating, (counts.get(f.rating) ?? 0) + 1);
+      }
+      const ratingSummary = Array.from(counts, ([rating, count]) => ({ rating, count })).sort(
+        (a, b) => b.count - a.count
+      );
+      return { ...occasion, ratingSummary };
+    }),
+  }));
+
+  return NextResponse.json({ groups: groupsOut });
 }
 
 /** Creates a new group with the current user as host, and as its first member. */

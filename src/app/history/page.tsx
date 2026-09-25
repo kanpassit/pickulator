@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import BottomNav from "@/components/BottomNav";
 import NotificationBell from "@/components/NotificationBell";
+import { RATING_LABELS } from "@/lib/ratingLabels";
 
 type ClosedOccasion = {
   id: string;
   type: string;
   closedAt: string | null;
   result: { chosenName: string } | null;
+  ratingSummary: { rating: string; count: number }[];
 };
 type Group = { id: string; name: string; hostUserId: string; occasions: ClosedOccasion[] };
 type Me = { id: string; name: string; email: string } | null;
@@ -21,6 +23,7 @@ type Row = {
   closedAt: string | null;
   chosenName: string;
   isHost: boolean;
+  ratingSummary: { rating: string; count: number }[];
 };
 
 function formatDate(iso: string | null) {
@@ -54,6 +57,7 @@ export default function HistoryPage() {
             closedAt: o.closedAt,
             chosenName: o.result?.chosenName ?? "No pick",
             isHost: me !== null && me !== undefined && g.hostUserId === me.id,
+            ratingSummary: o.ratingSummary,
           }))
         );
         flat.sort((a, b) => (b.closedAt ?? "").localeCompare(a.closedAt ?? ""));
@@ -113,11 +117,25 @@ export default function HistoryPage() {
               key={r.occasionId}
               className={`flex items-center justify-between py-3.5 ${i < rows.length - 1 ? "border-b border-border" : ""}`}
             >
-              <div className="flex flex-col gap-0.5">
+              <div className="flex flex-col gap-1">
                 <div className="text-base font-semibold">{r.chosenName}</div>
                 <div className="text-sm text-muted">
                   {r.groupName} · {r.type[0]}{r.type.slice(1).toLowerCase()} · {formatDate(r.closedAt)}
                 </div>
+                {r.ratingSummary.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-0.5">
+                    {r.ratingSummary.map((rs) => (
+                      <div
+                        key={rs.rating}
+                        className="px-2 py-0.5 rounded-full text-[11px] font-semibold"
+                        style={{ background: RATING_LABELS[rs.rating]?.bg ?? "var(--tint-tan)" }}
+                      >
+                        {RATING_LABELS[rs.rating]?.label ?? rs.rating}
+                        {rs.count > 1 ? ` ×${rs.count}` : ""}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-3 shrink-0 ml-3">
                 <Link href={`/result?occasionId=${r.occasionId}`} className="text-sm font-semibold text-primary">
