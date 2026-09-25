@@ -138,6 +138,7 @@ model Occasion {
   type     OccasionType
   day      OccasionDay
   timeSlot String
+  location String?
 
   status    OccasionStatus @default(OPEN)
   closeMode CloseMode      @default(ALL_ANSWERED)

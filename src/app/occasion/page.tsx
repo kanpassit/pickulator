@@ -35,6 +35,7 @@ function OccasionContent() {
   const [occ, setOcc] = useState<string>("DINNER");
   const [day, setDay] = useState("TODAY");
   const [slot, setSlot] = useState(1);
+  const [location, setLocation] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,7 +52,7 @@ function OccasionContent() {
       const res = await fetch("/api/occasions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ groupId, type: occ, day, timeSlot: slotNames[slot] }),
+        body: JSON.stringify({ groupId, type: occ, day, timeSlot: slotNames[slot], location }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -158,6 +159,22 @@ function OccasionContent() {
         </div>
         <div className="text-sm leading-[1.4] text-muted">
           Times shift with the occasion. &quot;Flexible&quot; lets me search a wider window.
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2.5">
+        <div className="text-base font-semibold">
+          Where are you deciding? <span className="font-normal text-muted">(optional)</span>
+        </div>
+        <input
+          type="text"
+          placeholder="e.g. San Diego, CA or a zip code"
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+          className="box-border h-[52px] px-4 rounded-[14px] border border-[#B8AA98] bg-white text-base"
+        />
+        <div className="text-sm leading-[1.4] text-muted">
+          Give me a place to search near and I&apos;ll name an actual restaurant instead of just a cuisine.
         </div>
       </div>
 

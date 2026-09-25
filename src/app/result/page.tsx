@@ -4,10 +4,30 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
+type HeuristicMeta = {
+  source: "heuristic";
+  why: string;
+  breadth: number;
+  firstPlaceVotes: number;
+  totalAnswers: number;
+};
+type ClaudeMeta = {
+  source: "claude";
+  why: string;
+  address: string;
+  priceRange: string | null;
+  cuisine: string;
+  sourceUrl: string;
+  heuristicPick: string;
+  totalAnswers: number;
+};
 type Result = {
   chosenName: string;
-  chosenMeta: { why: string; breadth: number; firstPlaceVotes: number; totalAnswers: number };
-  alsoConsidered: { pick: string; label: string; score: number; breadth: number }[] | null;
+  chosenMeta: HeuristicMeta | ClaudeMeta;
+  alsoConsidered:
+    | { pick: string; label: string; score: number; breadth: number }[]
+    | { name: string; cuisine: string; why: string }[]
+    | null;
 };
 type OccData = {
   occasion: { id: string; status: string };
@@ -47,6 +67,7 @@ function ResultContent() {
   }
 
   const { result } = data;
+  const meta = result.chosenMeta;
 
   return (
     <div className="w-full flex-1 box-border px-6 pt-5 pb-6 flex flex-col gap-[22px]">
@@ -57,31 +78,54 @@ function ResultContent() {
         <div className="bg-white border border-border rounded-[24px] p-6 flex flex-col gap-3.5">
           <div className="flex flex-col gap-1.5">
             <div className="font-serif text-[34px] font-bold leading-[1.1]">{result.chosenName}</div>
-            <div className="text-[15px] text-muted">
-              {result.chosenMeta.breadth} of {result.chosenMeta.totalAnswers} picked it
-              {result.chosenMeta.firstPlaceVotes > 0 ? ` · ${result.chosenMeta.firstPlaceVotes} ranked it first` : ""}
-            </div>
+            {meta.source === "claude" ? (
+              <div className="text-[15px] text-muted">
+                {[meta.cuisine, meta.priceRange, meta.address].filter(Boolean).join(" · ")}
+              </div>
+            ) : (
+              <div className="text-[15px] text-muted">
+                {meta.breadth} of {meta.totalAnswers} picked it
+                {meta.firstPlaceVotes > 0 ? ` · ${meta.firstPlaceVotes} ranked it first` : ""}
+              </div>
+            )}
           </div>
           <div className="h-px bg-border" />
           <div className="flex flex-col gap-1.5">
             <div className="text-sm font-bold">Why this one</div>
-            <div className="text-[15px] leading-[1.5]">{result.chosenMeta.why}</div>
+            <div className="text-[15px] leading-[1.5]">{meta.why}</div>
           </div>
+          {meta.source === "claude" && meta.sourceUrl && (
+            <a
+              href={meta.sourceUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="text-sm font-semibold text-primary"
+            >
+              View source →
+            </a>
+          )}
         </div>
       </div>
 
       {result.alsoConsidered && result.alsoConsidered.length > 0 && (
         <div className="flex flex-col gap-1">
           <div className="text-base font-semibold mb-1">Also considered</div>
-          {result.alsoConsidered.map((o, i) => (
-            <div
-              key={o.pick}
-              className={`flex items-center justify-between py-3 ${i < result.alsoConsidered!.length - 1 ? "border-b border-border" : ""}`}
-            >
-              <div className="text-base font-semibold">{o.label}</div>
-              <div className="text-sm text-muted">{o.breadth} picked it</div>
-            </div>
-          ))}
+          {result.alsoConsidered.map((o, i) => {
+            const key = "name" in o ? o.name : o.pick;
+            const label = "name" in o ? o.name : o.label;
+            const sub = "why" in o ? o.why : `${o.breadth} picked it`;
+            return (
+              <div
+                key={key}
+                className={`flex flex-col gap-0.5 py-3 ${
+                  i < result.alsoConsidered!.length - 1 ? "border-b border-border" : ""
+                }`}
+              >
+                <div className="text-base font-semibold">{label}</div>
+                <div className="text-sm text-muted">{sub}</div>
+              </div>
+            );
+          })}
         </div>
       )}
 

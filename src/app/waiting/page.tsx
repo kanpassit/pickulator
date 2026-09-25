@@ -126,7 +126,8 @@ function WaitingContent() {
             {closing ? "Deciding…" : "Decide with what we have"}
           </button>
           <div className="text-sm leading-[1.45] text-muted text-center">
-            Deciding now leaves out anyone who hasn&apos;t answered yet.
+            Deciding now leaves out anyone who hasn&apos;t answered yet. Finding a real pick can take up to a
+            minute.
           </div>
         </div>
       )}

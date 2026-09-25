@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { cuisineLabel } from "@/lib/cuisineLabels";
+import { getAiRestaurantPick } from "@/lib/aiPick";
+
+// Web search + tool-use round trips can run past the platform's default
+// function timeout, so give this route real headroom.
+export const maxDuration = 60;
 
 const RANK_WEIGHTS = [3, 2, 1]; // 1st, 2nd, 3rd pick
 
@@ -14,10 +19,13 @@ type Tally = {
 /**
  * Closes a round and computes the pick from everyone's hidden answers.
  *
- * This is a heuristic stand-in, not a real restaurant recommendation: there
- * is no places/restaurant API wired up yet (that's separately scoped), so
- * the "pick" is the group's top-scoring cuisine, not an actual venue. Swap
- * this scoring step out once a places API is integrated.
+ * Always scores everyone's ranked picks first (3/2/1 weighting, dealbreakers
+ * excluded) - that's cheap and gives us the group's cuisine preference plus
+ * a safe fallback. If the occasion has a location and the Claude API is
+ * configured, we then ask Claude to search the web and name one real,
+ * verified restaurant grounded in that scoring; if that fails or isn't
+ * configured, the result falls back to the cuisine-only heuristic pick
+ * rather than ever inventing a restaurant.
  */
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
@@ -78,34 +86,73 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const runnerUps = ranked.slice(1, 3);
   const totalAnswers = occasion.answers.length;
 
-  const whyParts: string[] = [];
-  whyParts.push(
+  const heuristicWhyParts: string[] = [];
+  heuristicWhyParts.push(
     `${cuisineLabel(winner.pick)} showed up in ${winner.breadth} of ${totalAnswers} top-3 picks` +
       (winner.firstPlaceVotes > 0
         ? `, ranked first by ${winner.firstPlaceVotes} ${winner.firstPlaceVotes === 1 ? "person" : "people"}.`
         : ".")
   );
   if (dealbreakers.size > 0) {
-    whyParts.push(
+    heuristicWhyParts.push(
       `Ruled out for dealbreakers: ${Array.from(dealbreakers).map(cuisineLabel).join(", ")}.`
     );
   }
 
-  const chosenMeta = {
+  let chosenName = cuisineLabel(winner.pick);
+  let chosenMeta: Record<string, unknown> = {
+    source: "heuristic",
     pick: winner.pick,
     score: winner.score,
     breadth: winner.breadth,
     firstPlaceVotes: winner.firstPlaceVotes,
     totalAnswers,
-    why: whyParts.join(" "),
+    why: heuristicWhyParts.join(" "),
   };
-
-  const alsoConsidered = runnerUps.map((r) => ({
+  let alsoConsidered: unknown = runnerUps.map((r) => ({
     pick: r.pick,
     label: cuisineLabel(r.pick),
     score: r.score,
     breadth: r.breadth,
   }));
+
+  if (occasion.location) {
+    try {
+      const aiPick = await getAiRestaurantPick({
+        location: occasion.location,
+        occasionType: occasion.type,
+        day: occasion.day,
+        timeSlot: occasion.timeSlot,
+        rankedTallies: ranked.slice(0, 5).map((r) => ({
+          pick: r.pick,
+          label: cuisineLabel(r.pick),
+          score: r.score,
+          breadth: r.breadth,
+          firstPlaceVotes: r.firstPlaceVotes,
+        })),
+        dealbreakerLabels: Array.from(dealbreakers).map(cuisineLabel),
+        budgets: occasion.answers.map((a) => a.budget).filter((b): b is string => Boolean(b)),
+        vibes: occasion.answers.map((a) => a.vibe).filter((v): v is string => Boolean(v)),
+      });
+
+      if (aiPick) {
+        chosenName = aiPick.name;
+        chosenMeta = {
+          source: "claude",
+          address: aiPick.address,
+          priceRange: aiPick.priceRange,
+          cuisine: aiPick.cuisine,
+          why: aiPick.why,
+          sourceUrl: aiPick.sourceUrl,
+          heuristicPick: cuisineLabel(winner.pick),
+          totalAnswers,
+        };
+        alsoConsidered = aiPick.alsoConsidered;
+      }
+    } catch (err) {
+      console.error("AI restaurant pick failed, falling back to heuristic result", err);
+    }
+  }
 
   const [, result] = await prisma.$transaction([
     prisma.occasion.update({
@@ -115,9 +162,9 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     prisma.result.create({
       data: {
         occasionId: occasion.id,
-        chosenName: cuisineLabel(winner.pick),
-        chosenMeta,
-        alsoConsidered,
+        chosenName,
+        chosenMeta: chosenMeta as never,
+        alsoConsidered: alsoConsidered as never,
       },
     }),
   ]);
