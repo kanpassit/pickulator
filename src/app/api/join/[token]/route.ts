@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { setGuestCookie } from "@/lib/identity";
 
 /**
  * Resolves a personal invite/join link. No account is required — the token
@@ -39,7 +40,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
     answeredMemberIds = new Set(answers.map((a) => a.memberId));
   }
 
-  return NextResponse.json({
+  const res = NextResponse.json({
     group: { id: member.group.id, name: member.group.name },
     member: {
       id: member.id,
@@ -68,6 +69,14 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
       answered: answeredMemberIds.has(m.id),
     })),
   });
+
+  // Remember this guest for this group so they can come back to pickulator.com
+  // later (e.g. from the home screen) without needing their personal link again.
+  if (!member.userId) {
+    setGuestCookie(res, member.groupId, member.linkToken);
+  }
+
+  return res;
 }
 
 /** Sets the optional mobile number captured on the Join screen. */

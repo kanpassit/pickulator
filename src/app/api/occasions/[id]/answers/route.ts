@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
+import { resolveMemberId } from "@/lib/identity";
 
 const TRAVEL_MODES = ["DRIVE", "TRANSIT", "WALK", "BIKE"] as const;
 
@@ -51,28 +51,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     locationMode?: unknown;
   };
 
-  // --- Resolve which member is answering ---
-  let memberId: string | null = null;
-
-  if (linkToken && typeof linkToken === "string") {
-    const member = await prisma.groupMember.findUnique({ where: { linkToken } });
-    if (member && member.groupId === occasion.groupId) memberId = member.id;
-  } else {
-    const user = await getCurrentUser();
-    if (user) {
-      if (bodyMemberId && typeof bodyMemberId === "string") {
-        const member = await prisma.groupMember.findUnique({ where: { id: bodyMemberId } });
-        if (member && member.groupId === occasion.groupId && member.userId === user.id) {
-          memberId = member.id;
-        }
-      } else {
-        const member = await prisma.groupMember.findFirst({
-          where: { groupId: occasion.groupId, userId: user.id },
-        });
-        if (member) memberId = member.id;
-      }
-    }
-  }
+  // --- Resolve which member is answering: their linkToken, their signed-in
+  // membership, or (new) a returning-guest cookie from an earlier visit ---
+  const memberId = await resolveMemberId(occasion.groupId, {
+    linkToken: typeof linkToken === "string" ? linkToken : null,
+    bodyMemberId: typeof bodyMemberId === "string" ? bodyMemberId : null,
+  });
 
   if (!memberId) {
     return NextResponse.json({ error: "Could not identify who is answering" }, { status: 401 });

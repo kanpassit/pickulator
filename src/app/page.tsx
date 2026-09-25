@@ -13,6 +13,11 @@ type ClosedOccasion = {
 };
 type Group = { id: string; name: string; hostUserId: string; members: Member[]; occasions: ClosedOccasion[] };
 type Me = { id: string; name: string; email: string } | null;
+type GuestGroup = {
+  group: { id: string; name: string };
+  member: { id: string; displayName: string; initial: string; tintColor: string; linkToken: string };
+  occasion: { id: string; type: string; hasAnswered: boolean } | null;
+};
 
 const GROUP_KEY = "pk_group_id";
 
@@ -28,6 +33,7 @@ export default function Home() {
   const [newGroupName, setNewGroupName] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [guestGroups, setGuestGroups] = useState<GuestGroup[] | null>(null);
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -51,6 +57,15 @@ export default function Home() {
 
   useEffect(() => {
     if (me) loadGroups();
+  }, [me]);
+
+  useEffect(() => {
+    if (me === null) {
+      fetch("/api/guest-groups")
+        .then((res) => res.json())
+        .then((body) => setGuestGroups(body.groups ?? []))
+        .catch(() => setGuestGroups([]));
+    }
   }, [me]);
 
   async function createGroup(e: React.FormEvent) {
@@ -95,6 +110,42 @@ export default function Home() {
           </svg>
         </div>
         <h1 className="m-0 font-serif text-3xl font-bold">Pickulator</h1>
+
+        {guestGroups && guestGroups.length > 0 && (
+          <div className="flex flex-col gap-3 w-full max-w-[280px] text-left">
+            <div className="text-[13px] font-semibold tracking-[0.06em] uppercase text-muted text-center">
+              Welcome back
+            </div>
+            {guestGroups.map((g) => (
+              <Link
+                key={g.member.id}
+                href={
+                  g.occasion
+                    ? g.occasion.hasAnswered
+                      ? `/waiting?occasionId=${g.occasion.id}&token=${g.member.linkToken}`
+                      : `/question?occasionId=${g.occasion.id}&token=${g.member.linkToken}`
+                    : `/j/${g.member.linkToken}`
+                }
+                className="box-border p-4 rounded-[14px] border border-border bg-white flex items-center gap-3 no-underline text-[#2A211B]"
+              >
+                <div
+                  className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-sm font-bold"
+                  style={{ background: g.member.tintColor }}
+                >
+                  {g.member.initial}
+                </div>
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <div className="text-[15px] font-semibold truncate">Continue as {g.member.displayName}</div>
+                  <div className="text-[13px] text-muted truncate">
+                    {g.group.name}
+                    {g.occasion ? (g.occasion.hasAnswered ? " · waiting on the group" : " · a round is open") : ""}
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+
         <div className="text-[15px] leading-[1.45] text-muted max-w-[280px]">
           Sign in to see your groups, or create an account to start one.
         </div>
