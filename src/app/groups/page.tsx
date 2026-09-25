@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
 import NotificationBell from "@/components/NotificationBell";
 
@@ -10,10 +9,7 @@ type Member = { id: string; displayName: string; initial: string; tintColor: str
 type Group = { id: string; name: string; hostUserId: string; members: Member[] };
 type Me = { id: string; name: string; email: string } | null;
 
-const GROUP_KEY = "pk_group_id";
-
 export default function GroupsPage() {
-  const router = useRouter();
   const [me, setMe] = useState<Me | undefined>(undefined);
   const [groups, setGroups] = useState<Group[] | null>(null);
   const [newName, setNewName] = useState("");
@@ -39,11 +35,6 @@ export default function GroupsPage() {
     if (me) loadGroups();
   }, [me]);
 
-  function selectGroup(id: string) {
-    window.localStorage.setItem(GROUP_KEY, id);
-    router.push("/");
-  }
-
   async function createGroup(e: React.FormEvent) {
     e.preventDefault();
     if (!newName.trim()) return;
@@ -60,8 +51,8 @@ export default function GroupsPage() {
         setError(data.error ?? "Couldn't create that group");
         return;
       }
-      window.localStorage.setItem(GROUP_KEY, data.group.id);
-      router.push("/");
+      setNewName("");
+      loadGroups();
     } finally {
       setCreating(false);
     }
@@ -77,8 +68,6 @@ export default function GroupsPage() {
         setError(data.error ?? "Couldn't delete that group");
         return;
       }
-      const stored = window.localStorage.getItem(GROUP_KEY);
-      if (stored === id) window.localStorage.removeItem(GROUP_KEY);
       loadGroups();
     } finally {
       setDeletingId(null);
@@ -100,8 +89,6 @@ export default function GroupsPage() {
     );
   }
 
-  const activeId = typeof window !== "undefined" ? window.localStorage.getItem(GROUP_KEY) : null;
-
   return (
     <div className="relative overflow-hidden w-full flex-1 flex flex-col">
       <div className="shrink-0 h-16 px-6 flex items-center justify-between border-b border-border bg-background">
@@ -119,9 +106,9 @@ export default function GroupsPage() {
               <div
                 key={g.id}
                 className="box-border p-4 rounded-2xl border-2 bg-white flex items-center gap-3"
-                style={{ borderColor: g.id === activeId ? "var(--primary)" : "var(--border)" }}
+                style={{ borderColor: "var(--border)" }}
               >
-                <button type="button" onClick={() => selectGroup(g.id)} className="flex-grow flex items-center gap-3 text-left">
+                <Link href={`/invite?groupId=${g.id}`} className="flex-grow flex items-center gap-3 text-left no-underline text-[#2A211B]">
                   <div className="flex">
                     {g.members.slice(0, 3).map((m, i) => (
                       <div
@@ -140,7 +127,7 @@ export default function GroupsPage() {
                       {isHost ? " · You're hosting" : ""}
                     </div>
                   </div>
-                </button>
+                </Link>
                 {isHost && (
                   <button
                     type="button"

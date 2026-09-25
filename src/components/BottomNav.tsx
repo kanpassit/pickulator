@@ -2,23 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-
-const GROUP_KEY = "pk_group_id";
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
-
-  useEffect(() => {
-    setActiveGroupId(window.localStorage.getItem(GROUP_KEY));
-  }, [pathname]);
 
   function tabStyle(path: string) {
     return pathname === path ? "text-primary" : "text-muted";
   }
-
-  const startHref = activeGroupId ? `/occasion?groupId=${activeGroupId}` : "/groups";
 
   return (
     <div className="shrink-0 h-[76px] px-2 flex items-center justify-between border-t border-border bg-white">
@@ -44,7 +34,7 @@ export default function BottomNav() {
       </Link>
       <div className="flex-1 flex justify-center">
         <Link
-          href={startHref}
+          href="/start"
           aria-label="Start a new round"
           className="w-14 h-14 -mt-[22px] rounded-full bg-primary border-4 border-white shadow-[0_6px_16px_rgba(194,59,32,0.35)] flex items-center justify-center box-border"
         >

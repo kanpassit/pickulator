@@ -3,7 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { generateLinkToken, initialFor, tintForIndex } from "@/lib/tokens";
 
-/** Lists groups the current user hosts or belongs to, with recent closed rounds. */
+/** Lists groups the current user hosts or belongs to, with recent closed
+ * rounds, plus every currently-open round across all of them - that's the
+ * "what needs my attention" list the home screen leads with. */
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
@@ -42,7 +44,49 @@ export async function GET() {
     }),
   }));
 
-  return NextResponse.json({ groups: groupsOut });
+  // Every open round across all of the user's groups, with whether their
+  // own membership has answered yet - the thing an actual "home" screen
+  // should lead with, instead of one arbitrarily "active" group.
+  const groupIds = groups.map((g) => g.id);
+  const myMemberIdByGroup = new Map(
+    groups.map((g) => [g.id, g.members.find((m) => m.userId === user.id)?.id ?? null])
+  );
+
+  const openOccasions = groupIds.length
+    ? await prisma.occasion.findMany({
+        where: { groupId: { in: groupIds }, status: "OPEN" },
+        orderBy: { createdAt: "desc" },
+      })
+    : [];
+
+  const myMemberIds = [...myMemberIdByGroup.values()].filter((id): id is string => Boolean(id));
+  const myAnswers =
+    openOccasions.length && myMemberIds.length
+      ? await prisma.answer.findMany({
+          where: { occasionId: { in: openOccasions.map((o) => o.id) }, memberId: { in: myMemberIds } },
+          select: { occasionId: true, memberId: true },
+        })
+      : [];
+  const answeredSet = new Set(myAnswers.map((a) => `${a.occasionId}:${a.memberId}`));
+
+  const groupNameById = new Map(groups.map((g) => [g.id, g.name]));
+  const hostIdByGroup = new Map(groups.map((g) => [g.id, g.hostUserId]));
+
+  const openRounds = openOccasions.map((o) => {
+    const myMemberId = myMemberIdByGroup.get(o.groupId) ?? null;
+    return {
+      occasionId: o.id,
+      groupId: o.groupId,
+      groupName: groupNameById.get(o.groupId) ?? "",
+      type: o.type,
+      day: o.day,
+      timeSlot: o.timeSlot,
+      isHost: hostIdByGroup.get(o.groupId) === user.id,
+      hasAnswered: myMemberId ? answeredSet.has(`${o.id}:${myMemberId}`) : false,
+    };
+  });
+
+  return NextResponse.json({ groups: groupsOut, openRounds });
 }
 
 /** Creates a new group with the current user as host, and as its first member. */

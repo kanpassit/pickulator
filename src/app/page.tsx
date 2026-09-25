@@ -9,12 +9,23 @@ import { RATING_LABELS } from "@/lib/ratingLabels";
 type Member = { id: string; displayName: string; initial: string; tintColor: string; userId: string | null };
 type ClosedOccasion = {
   id: string;
+  groupId: string;
   type: string;
   closedAt: string | null;
   result: { chosenName: string } | null;
   ratingSummary: { rating: string; count: number }[];
 };
 type Group = { id: string; name: string; hostUserId: string; members: Member[]; occasions: ClosedOccasion[] };
+type OpenRound = {
+  occasionId: string;
+  groupId: string;
+  groupName: string;
+  type: string;
+  day: string;
+  timeSlot: string;
+  isHost: boolean;
+  hasAnswered: boolean;
+};
 type Me = { id: string; name: string; email: string } | null;
 type GuestGroup = {
   group: { id: string; name: string };
@@ -29,7 +40,21 @@ type PendingLink = {
   group: { id: string; name: string };
 };
 
-const GROUP_KEY = "pk_group_id";
+const OCCASION_LABELS: Record<string, string> = {
+  BRUNCH: "Brunch",
+  LUNCH: "Lunch",
+  DINNER: "Dinner",
+  COFFEE: "Coffee",
+  DRINKS: "Drinks",
+  LATE: "Late night",
+};
+
+const DAY_LABELS: Record<string, string> = {
+  TODAY: "today",
+  TOMORROW: "tomorrow",
+  WEEKEND: "this weekend",
+  OTHER: "soon",
+};
 
 function formatDate(iso: string | null) {
   if (!iso) return "";
@@ -39,7 +64,7 @@ function formatDate(iso: string | null) {
 export default function Home() {
   const [me, setMe] = useState<Me | undefined>(undefined); // undefined = loading
   const [groups, setGroups] = useState<Group[] | null>(null);
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [openRounds, setOpenRounds] = useState<OpenRound[]>([]);
   const [newGroupName, setNewGroupName] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,13 +84,13 @@ export default function Home() {
     fetch("/api/groups")
       .then((res) => res.json())
       .then((body) => {
-        const list: Group[] = body.groups ?? [];
-        setGroups(list);
-        const stored = typeof window !== "undefined" ? window.localStorage.getItem(GROUP_KEY) : null;
-        const fallback = list.find((g) => g.id === stored) ?? list[0];
-        setActiveId(fallback?.id ?? null);
+        setGroups(body.groups ?? []);
+        setOpenRounds(body.openRounds ?? []);
       })
-      .catch(() => setGroups([]));
+      .catch(() => {
+        setGroups([]);
+        setOpenRounds([]);
+      });
   }
 
   function loadPendingLinks() {
@@ -208,7 +233,10 @@ export default function Home() {
     );
   }
 
-  const active = groups?.find((g) => g.id === activeId) ?? null;
+  const recentPicks = (groups ?? [])
+    .flatMap((g) => g.occasions.map((o) => ({ ...o, groupName: g.name, isHost: g.hostUserId === me.id })))
+    .sort((a, b) => (b.closedAt ?? "").localeCompare(a.closedAt ?? ""))
+    .slice(0, 4);
 
   return (
     <div className="relative overflow-hidden w-full flex-1 flex flex-col">
@@ -277,7 +305,7 @@ export default function Home() {
             <div className="flex flex-col gap-1">
               <div className="font-serif text-2xl font-semibold">Start your first group</div>
               <div className="text-[15px] leading-[1.45] text-muted">
-                Give it a name, then invite the people who&apos;ll be deciding with you.
+                Give it a name, then share one link with the people who&apos;ll be deciding with you.
               </div>
             </div>
             <form onSubmit={createGroup} className="flex flex-col gap-3">
@@ -300,66 +328,93 @@ export default function Home() {
           </div>
         )}
 
-        {active && (
+        {groups !== null && groups.length > 0 && (
           <>
-            <div className="flex flex-col gap-1">
-              <div className="text-[13px] font-semibold tracking-[0.06em] uppercase text-muted">Your groups</div>
-              <h1 className="m-0 font-serif text-4xl font-bold leading-[1.1]">{active.name}</h1>
-            </div>
+            {openRounds.length > 0 && (
+              <div className="flex flex-col gap-2.5">
+                <div className="text-[13px] font-semibold tracking-[0.06em] uppercase text-muted">Open rounds</div>
+                {openRounds.map((r) => (
+                  <Link
+                    key={r.occasionId}
+                    href={r.hasAnswered ? `/waiting?occasionId=${r.occasionId}` : `/question?occasionId=${r.occasionId}`}
+                    className="box-border p-4 rounded-2xl border-2 bg-white flex items-center gap-3 no-underline text-[#2A211B]"
+                    style={{ borderColor: "var(--primary)" }}
+                  >
+                    <div className="flex-grow flex flex-col gap-0.5 min-w-0">
+                      <div className="text-base font-bold truncate">
+                        {r.groupName} · {OCCASION_LABELS[r.type] ?? r.type}
+                      </div>
+                      <div className="text-sm text-muted truncate">
+                        {DAY_LABELS[r.day] ?? r.day}, {r.timeSlot}
+                      </div>
+                    </div>
+                    <div
+                      className="shrink-0 px-3 py-1.5 rounded-full text-sm font-semibold"
+                      style={{
+                        background: r.hasAnswered ? "var(--tint-tan)" : "var(--primary)",
+                        color: r.hasAnswered ? "var(--foreground)" : "#FFFFFF",
+                      }}
+                    >
+                      {r.hasAnswered ? "Waiting" : "Answer now"}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
 
-            <div className="flex gap-4 items-start flex-wrap">
-              {active.members.map((m) => (
-                <div key={m.id} className="flex flex-col items-center gap-1">
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold" style={{ background: m.tintColor }}>
-                    {m.initial}
-                  </div>
-                  <div className="text-[13px] text-muted">{m.displayName}</div>
+            <div className="flex flex-col gap-2.5">
+              <div className="flex items-center justify-between">
+                <div className="text-[13px] font-semibold tracking-[0.06em] uppercase text-muted">Your groups</div>
+                <Link href="/groups" className="text-sm font-semibold text-primary">
+                  Manage
+                </Link>
+              </div>
+              {groups.map((g) => (
+                <div key={g.id} className="box-border p-4 rounded-2xl border border-border bg-white flex items-center gap-3">
+                  <Link href={`/invite?groupId=${g.id}`} className="flex-grow flex items-center gap-3 no-underline text-[#2A211B] min-w-0">
+                    <div className="flex shrink-0">
+                      {g.members.slice(0, 3).map((m, i) => (
+                        <div
+                          key={m.id}
+                          className="w-9 h-9 rounded-full border-2 border-white flex items-center justify-center text-sm font-bold"
+                          style={{ background: m.tintColor, marginLeft: i === 0 ? 0 : -8 }}
+                        >
+                          {m.initial}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex flex-col gap-0.5 min-w-0">
+                      <div className="text-base font-bold truncate">{g.name}</div>
+                      <div className="text-sm text-muted">
+                        {g.members.length} {g.members.length === 1 ? "person" : "people"}
+                      </div>
+                    </div>
+                  </Link>
+                  <Link
+                    href={`/occasion?groupId=${g.id}`}
+                    className="shrink-0 h-10 px-4 rounded-full bg-primary text-white flex items-center justify-center text-sm font-semibold no-underline"
+                  >
+                    Start a round
+                  </Link>
                 </div>
               ))}
-              <div className="flex flex-col items-center gap-1">
-                <Link
-                  href={`/invite?groupId=${active.id}`}
-                  aria-label="Invite someone"
-                  className="box-border w-12 h-12 rounded-full border-2 border-dashed flex items-center justify-center"
-                  style={{ borderColor: "#B8AA98" }}
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2.5" strokeLinecap="round">
-                    <path d="M12 5v14M5 12h14" />
-                  </svg>
-                </Link>
-                <div className="text-[13px] text-muted">Invite</div>
-              </div>
             </div>
 
-            <div className="bg-white border border-border rounded-[20px] p-5 flex flex-col gap-3.5">
-              <div className="flex flex-col gap-1.5">
-                <div className="font-serif text-2xl font-semibold">Deciding tonight?</div>
-                <div className="text-[15px] leading-[1.45] text-muted">
-                  Start a round and share the group link. It takes about 30 seconds each.
-                </div>
-              </div>
-              <Link
-                href={`/occasion?groupId=${active.id}`}
-                className="h-14 rounded-[14px] bg-primary text-white flex items-center justify-center text-[17px] font-semibold no-underline"
-              >
-                Start a new round
-              </Link>
-            </div>
-
-            {active.occasions.length > 0 && (
+            {recentPicks.length > 0 && (
               <div className="flex flex-col gap-1">
-                <div className="text-base font-semibold mb-1">Recent nights</div>
-                {active.occasions.map((o, i) => {
-                  const isHost = active.hostUserId === me.id;
+                <div className="text-[13px] font-semibold tracking-[0.06em] uppercase text-muted mb-1">Recently decided</div>
+                {recentPicks.map((o, i) => {
                   const chosenName = o.result?.chosenName ?? "No pick";
                   return (
                     <div
                       key={o.id}
-                      className={`flex items-center justify-between py-3 ${i < active.occasions.length - 1 ? "border-b border-border" : ""}`}
+                      className={`flex items-center justify-between py-3 ${i < recentPicks.length - 1 ? "border-b border-border" : ""}`}
                     >
-                      <div className="flex flex-col gap-1">
-                        <div className="text-base font-semibold">{chosenName}</div>
-                        <div className="text-sm text-muted">{o.type} · {formatDate(o.closedAt)}</div>
+                      <div className="flex flex-col gap-1 min-w-0">
+                        <div className="text-base font-semibold truncate">{chosenName}</div>
+                        <div className="text-sm text-muted truncate">
+                          {o.groupName} · {o.type} · {formatDate(o.closedAt)}
+                        </div>
                         {o.ratingSummary.length > 0 && (
                           <div className="flex flex-wrap gap-1.5 mt-0.5">
                             {o.ratingSummary.map((r) => (
@@ -379,7 +434,7 @@ export default function Home() {
                         <Link href={`/result?occasionId=${o.id}`} className="text-sm font-semibold text-primary">
                           View
                         </Link>
-                        {isHost && (
+                        {o.isHost && (
                           <button
                             type="button"
                             aria-label={`Delete ${chosenName}`}
