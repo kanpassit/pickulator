@@ -36,6 +36,7 @@ function OccasionContent() {
   const [day, setDay] = useState("TODAY");
   const [slot, setSlot] = useState(1);
   const [location, setLocation] = useState("");
+  const [avoidRepeats, setAvoidRepeats] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,7 +53,7 @@ function OccasionContent() {
       const res = await fetch("/api/occasions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ groupId, type: occ, day, timeSlot: slotNames[slot], location }),
+        body: JSON.stringify({ groupId, type: occ, day, timeSlot: slotNames[slot], location, avoidRepeats }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -177,6 +178,31 @@ function OccasionContent() {
           Give me a place to search near and I&apos;ll name an actual restaurant instead of just a cuisine.
         </div>
       </div>
+
+      <button
+        type="button"
+        onClick={() => setAvoidRepeats((v) => !v)}
+        className="box-border p-4 rounded-2xl border-2 bg-white flex items-center gap-3 text-left"
+        style={{ borderColor: avoidRepeats ? "var(--primary)" : "var(--border)" }}
+      >
+        <div className="flex-grow flex flex-col gap-0.5">
+          <div className="text-base font-semibold">Give us something new</div>
+          <div className="text-sm text-muted">Skip places this group has already been</div>
+        </div>
+        <div
+          className="w-6 h-6 shrink-0 rounded-full border-2 flex items-center justify-center"
+          style={{
+            borderColor: avoidRepeats ? "var(--primary)" : "var(--border)",
+            background: avoidRepeats ? "var(--primary)" : "transparent",
+          }}
+        >
+          {avoidRepeats && (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 12l5 5L20 7" />
+            </svg>
+          )}
+        </div>
+      </button>
 
       <div className="flex-grow" />
       {error && <div className="text-sm text-primary text-center">{error}</div>}

@@ -19,6 +19,7 @@ export type AiPickInput = {
   dealbreakerLabels: string[];
   budgets: string[];
   vibes: string[];
+  avoidNames: string[];
 };
 
 export type AiPickCandidate = {
@@ -98,7 +99,11 @@ Hard dealbreakers (never recommend a restaurant whose main cuisine is one of the
   }
 Budget notes from the group: ${input.budgets.length ? input.budgets.join(", ") : "none given"}
 Vibe notes from the group: ${input.vibes.length ? input.vibes.join(", ") : "none given"}
-
+${
+  input.avoidNames.length
+    ? `\nThe group wants somewhere NEW this time. They've already been to these places recently - do NOT recommend any of them again, as a top pick or as a backup: ${input.avoidNames.join(", ")}.\n`
+    : ""
+}
 Search the web to find a real restaurant near that location matching the group's top cuisine preference (or their next-best preference if you can't verify a place for the top one). You MUST verify with a search result that it exists and is currently open for business before recommending it - never invent a restaurant, address, or URL. Then find up to 2 real backup alternatives you also verified. When you're done, call propose_pick with your final answer - don't just describe it in plain text.`;
 
   const tools = [

@@ -125,6 +125,27 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
   if (occasion.location) {
     try {
+      let avoidNames: string[] = [];
+      if (occasion.avoidRepeats) {
+        const [pastResults, elsewhereFeedback] = await Promise.all([
+          prisma.result.findMany({
+            where: { occasion: { groupId: occasion.groupId, status: "CLOSED", NOT: { id: occasion.id } } },
+            select: { chosenName: true },
+          }),
+          prisma.feedback.findMany({
+            where: { occasion: { groupId: occasion.groupId }, choice: "ELSEWHERE", notes: { not: null } },
+            select: { notes: true },
+          }),
+        ]);
+        avoidNames = Array.from(
+          new Set(
+            [...pastResults.map((r) => r.chosenName), ...elsewhereFeedback.map((f) => f.notes ?? "")]
+              .map((n) => n.trim())
+              .filter(Boolean)
+          )
+        );
+      }
+
       const aiPick = await getAiRestaurantPick({
         location: occasion.location,
         occasionType: occasion.type,
@@ -140,6 +161,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
         dealbreakerLabels: Array.from(dealbreakers).map(labelFor),
         budgets: occasion.answers.map((a) => a.budget).filter((b): b is string => Boolean(b)),
         vibes: occasion.answers.map((a) => a.vibe).filter((v): v is string => Boolean(v)),
+        avoidNames,
       });
 
       if (aiPick) {
