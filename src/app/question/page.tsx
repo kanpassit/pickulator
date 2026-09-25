@@ -2,31 +2,10 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { QuestionProgress } from "../_components/QuestionProgress";
+import { SETS, ALL, type Option } from "@/lib/cuisineOptions";
 
-type Option = { id: string; name: string; hint: string; dot: string };
-
-const SETS: Option[][] = [
-  [
-    { id: "thai", name: "Thai", hint: "Curries, noodles, basil everything", dot: "var(--tint-yellow)" },
-    { id: "tacos", name: "Tacos", hint: "Street-style, salsa bar", dot: "var(--tint-pink)" },
-    { id: "ramen", name: "Ramen", hint: "Rich broth, quick in and out", dot: "var(--tint-green)" },
-    { id: "surprise", name: "Surprise me", hint: "Let the crew history decide", dot: "var(--tint-tan)" },
-  ],
-  [
-    { id: "burgers", name: "Burgers", hint: "Smash patties, shakes, fries", dot: "var(--tint-yellow)" },
-    { id: "indian", name: "Indian", hint: "Curries, naan, share-plate friendly", dot: "var(--tint-pink)" },
-    { id: "med", name: "Mediterranean", hint: "Grilled skewers, mezze, fresh salads", dot: "var(--tint-green)" },
-    { id: "kbbq", name: "Korean BBQ", hint: "Grill at the table, lots of sides", dot: "var(--tint-tan)" },
-  ],
-  [
-    { id: "sushi", name: "Sushi", hint: "Rolls, nigiri, quick and light", dot: "var(--tint-yellow)" },
-    { id: "pizza", name: "Pizza", hint: "Wood-fired, easy to share", dot: "var(--tint-pink)" },
-    { id: "viet", name: "Vietnamese", hint: "Pho, banh mi, herbs and broth", dot: "var(--tint-green)" },
-    { id: "sandwich", name: "Sandwiches", hint: "Casual, fast, good for a big group", dot: "var(--tint-tan)" },
-  ],
-];
-
-const ALL: Record<string, Option> = Object.fromEntries(SETS.flat().map((o) => [o.id, o]));
+type CustomOption = { id: string; label: string; hint: string | null; createdByMemberId: string };
 
 function QuestionContent() {
   const params = useSearchParams();
@@ -34,11 +13,22 @@ function QuestionContent() {
   const token = params.get("token");
   const router = useRouter();
 
-  const [picks, setPicks] = useState<string[]>([]);
+  const [picks, setPicks] = useState<string[]>(() => {
+    const raw = params.get("picks");
+    return raw ? raw.split(",").filter(Boolean) : [];
+  });
   const [set, setSet] = useState(0);
   const [label, setLabel] = useState("New round");
-  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [isRegistered, setIsRegistered] = useState(false);
+  const [memberNames, setMemberNames] = useState<Record<string, string>>({});
+  const [customOptions, setCustomOptions] = useState<CustomOption[]>([]);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newLabel, setNewLabel] = useState("");
+  const [newHint, setNewHint] = useState("");
+  const [addBusy, setAddBusy] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!occasionId) return;
@@ -48,12 +38,25 @@ function QuestionContent() {
         if (body.group && body.occasion) {
           setLabel(`${body.group.name} · ${body.occasion.type[0]}${body.occasion.type.slice(1).toLowerCase()}`);
         }
+        if (Array.isArray(body.customOptions)) setCustomOptions(body.customOptions);
+        if (Array.isArray(body.members)) {
+          setMemberNames(Object.fromEntries(body.members.map((m: { id: string; displayName: string }) => [m.id, m.displayName])));
+        }
       })
+      .catch(() => {});
+    fetch("/api/auth/me")
+      .then((res) => res.json())
+      .then((body) => setIsRegistered(!!body.user))
       .catch(() => {});
   }, [occasionId]);
 
   const full = picks.length >= 3;
   const opts = SETS[set % SETS.length];
+
+  const customById: Record<string, Option> = Object.fromEntries(
+    customOptions.map((o) => [o.id, { id: o.id, name: o.label, hint: o.hint ?? "Added by your group", dot: "var(--tint-tan)" }])
+  );
+  const allById: Record<string, Option> = { ...ALL, ...customById };
 
   function toggle(id: string) {
     setPicks((cur) => {
@@ -63,36 +66,41 @@ function QuestionContent() {
     });
   }
 
-  async function submit() {
+  function goNext() {
     if (!occasionId || !full) return;
-    setBusy(true);
     setError(null);
+    const q = new URLSearchParams({ occasionId, picks: picks.join(",") });
+    if (token) q.set("token", token);
+    router.push(`/vibe?${q.toString()}`);
+  }
+
+  async function addCustomOption() {
+    if (!occasionId || !newLabel.trim()) return;
+    setAddBusy(true);
+    setAddError(null);
     try {
-      const res = await fetch(`/api/occasions/${occasionId}/answers`, {
+      const res = await fetch(`/api/occasions/${occasionId}/custom-options`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(token ? { linkToken: token, rankedPicks: picks } : { rankedPicks: picks }),
+        body: JSON.stringify({ label: newLabel.trim(), hint: newHint.trim() }),
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Couldn't save your picks");
+        setAddError(data.error ?? "Couldn't add that option");
         return;
       }
-      const q = new URLSearchParams({ occasionId });
-      if (token) q.set("token", token);
-      router.push(`/waiting?${q.toString()}`);
+      setCustomOptions((cur) => [...cur, data.option]);
+      setNewLabel("");
+      setNewHint("");
+      setShowAddForm(false);
     } finally {
-      setBusy(false);
+      setAddBusy(false);
     }
   }
 
   return (
     <div className="w-full flex-1 box-border px-6 pt-5 pb-6 flex flex-col gap-5">
-      <div className="flex items-center justify-between h-11">
-        <div className="w-11 h-11" />
-        <div className="text-sm text-muted">{label}</div>
-        <div className="w-11" />
-      </div>
+      <QuestionProgress step={1} total={5} label={label} />
 
       <div className="flex flex-col gap-2 mt-2">
         <h1 className="m-0 font-serif text-[34px] font-bold leading-[1.12]">Pick your top 3</h1>
@@ -125,7 +133,7 @@ function QuestionContent() {
                 className="text-sm font-semibold whitespace-nowrap overflow-hidden text-ellipsis"
                 style={{ color: on ? "var(--foreground)" : "var(--muted)" }}
               >
-                {on ? ALL[id].name : "Empty"}
+                {on ? (allById[id]?.name ?? "Pick") : "Empty"}
               </div>
             </div>
           );
@@ -174,6 +182,100 @@ function QuestionContent() {
         <span>Give me more options</span>
       </button>
 
+      {(customOptions.length > 0 || isRegistered) && (
+        <div className="flex flex-col gap-2.5">
+          <div className="text-base font-semibold">From your group</div>
+
+          {customOptions.map((o) => {
+            const idx = picks.indexOf(o.id);
+            const on = idx >= 0;
+            return (
+              <button
+                key={o.id}
+                type="button"
+                onClick={() => toggle(o.id)}
+                className="box-border p-4 rounded-2xl border-2 bg-white flex items-center gap-3 text-left"
+                style={{ borderColor: on ? "var(--primary)" : "var(--border)", opacity: !on && full ? 0.5 : 1 }}
+              >
+                <div className="flex-grow flex flex-col gap-0.5">
+                  <div className="text-base font-bold">{o.label}</div>
+                  <div className="text-xs text-muted">
+                    {o.hint ? o.hint + " · " : ""}Added by {memberNames[o.createdByMemberId] ?? "a member"}
+                  </div>
+                </div>
+                {on && (
+                  <div className="w-7 h-7 shrink-0 rounded-full bg-primary text-white flex items-center justify-center text-[15px] font-bold">
+                    {idx + 1}
+                  </div>
+                )}
+              </button>
+            );
+          })}
+
+          {isRegistered && !showAddForm && (
+            <button
+              type="button"
+              onClick={() => setShowAddForm(true)}
+              className="h-12 rounded-[14px] border-2 border-dashed flex items-center justify-center gap-2 text-sm font-semibold"
+              style={{ borderColor: "var(--border)", color: "var(--muted)" }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              <span>Add your own option</span>
+            </button>
+          )}
+
+          {isRegistered && showAddForm && (
+            <div className="flex flex-col gap-2 p-4 rounded-2xl border-2 bg-white" style={{ borderColor: "var(--border)" }}>
+              <input
+                type="text"
+                placeholder="e.g. Poke"
+                value={newLabel}
+                onChange={(e) => setNewLabel(e.target.value)}
+                maxLength={40}
+                className="box-border h-11 px-3 rounded-[10px] border text-base"
+                style={{ borderColor: "var(--border)" }}
+              />
+              <input
+                type="text"
+                placeholder="Short hint (optional)"
+                value={newHint}
+                onChange={(e) => setNewHint(e.target.value)}
+                maxLength={80}
+                className="box-border h-11 px-3 rounded-[10px] border text-sm"
+                style={{ borderColor: "var(--border)" }}
+              />
+              {addError && <div className="text-sm text-primary">{addError}</div>}
+              <div className="flex gap-2 mt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddForm(false);
+                    setAddError(null);
+                    setNewLabel("");
+                    setNewHint("");
+                  }}
+                  className="flex-1 h-11 rounded-[10px] border-2 text-sm font-semibold"
+                  style={{ borderColor: "var(--border)" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={addCustomOption}
+                  disabled={!newLabel.trim() || addBusy}
+                  className="flex-1 h-11 rounded-[10px] text-sm font-semibold border-none disabled:opacity-60"
+                  style={{ background: "var(--primary)", color: "#FFFFFF" }}
+                >
+                  {addBusy ? "Adding…" : "Add"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="flex-grow" />
       <div className="flex items-center justify-center gap-2 text-sm text-muted">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -185,15 +287,15 @@ function QuestionContent() {
       {error && <div className="text-sm text-primary text-center">{error}</div>}
       <button
         type="button"
-        onClick={submit}
-        disabled={!full || busy || !occasionId}
+        onClick={goNext}
+        disabled={!full || !occasionId}
         className="h-14 rounded-[14px] flex items-center justify-center text-[17px] font-semibold border-none disabled:cursor-not-allowed"
         style={{
           background: full ? "var(--primary)" : "var(--border)",
           color: full ? "#FFFFFF" : "var(--muted)",
         }}
       >
-        {busy ? "Saving…" : full ? "Submit my picks" : `Pick ${3 - picks.length} more`}
+        {full ? "Next" : `Pick ${3 - picks.length} more`}
       </button>
     </div>
   );

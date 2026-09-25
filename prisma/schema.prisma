@@ -123,8 +123,9 @@ model GroupMember {
 
   createdAt DateTime @default(now())
 
-  answers  Answer[]
-  feedback Feedback[]
+  answers       Answer[]
+  feedback      Feedback[]
+  customOptions CustomOption[]
 
   @@index([groupId])
 }
@@ -148,9 +149,10 @@ model Occasion {
   createdAt         DateTime  @default(now())
   closedAt          DateTime?
 
-  answers  Answer[]
-  result   Result?
-  feedback Feedback[]
+  answers       Answer[]
+  result        Result?
+  feedback      Feedback[]
+  customOptions CustomOption[]
 
   @@index([groupId])
 }
@@ -174,6 +176,25 @@ model Answer {
   answeredAt DateTime @default(now())
 
   @@unique([occasionId, memberId])
+}
+
+// A pick option a registered (non-guest) member adds for one round, on
+// top of the built-in cuisine list. Visible to everyone in that occasion
+// who hasn't answered yet (Question.dc.html "Add your own").
+model CustomOption {
+  id         String   @id @default(cuid())
+  occasionId String
+  occasion   Occasion @relation(fields: [occasionId], references: [id], onDelete: Cascade)
+
+  label String
+  hint  String?
+
+  createdByMemberId String
+  createdByMember   GroupMember @relation(fields: [createdByMemberId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([occasionId])
 }
 
 // The computed pick for a round, once closed. Result.dc.html.

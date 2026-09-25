@@ -38,6 +38,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       group: true,
       answers: true,
       result: true,
+      customOptions: true,
     },
   });
   if (!occasion) return NextResponse.json({ error: "Occasion not found" }, { status: 404 });
@@ -57,6 +58,12 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   for (const a of occasion.answers) {
     for (const d of a.dealbreakers) dealbreakers.add(d);
   }
+
+  // Custom options are free-text labels a member typed in, not static
+  // cuisine ids - resolve those by id before falling back to cuisineLabel's
+  // title-casing (which would otherwise mangle a custom option's cuid id).
+  const customLabelById = new Map(occasion.customOptions.map((o) => [o.id, o.label]));
+  const labelFor = (pick: string) => customLabelById.get(pick) ?? cuisineLabel(pick);
 
   const tallies = new Map<string, Tally>();
   for (const a of occasion.answers) {
@@ -88,18 +95,18 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
   const heuristicWhyParts: string[] = [];
   heuristicWhyParts.push(
-    `${cuisineLabel(winner.pick)} showed up in ${winner.breadth} of ${totalAnswers} top-3 picks` +
+    `${labelFor(winner.pick)} showed up in ${winner.breadth} of ${totalAnswers} top-3 picks` +
       (winner.firstPlaceVotes > 0
         ? `, ranked first by ${winner.firstPlaceVotes} ${winner.firstPlaceVotes === 1 ? "person" : "people"}.`
         : ".")
   );
   if (dealbreakers.size > 0) {
     heuristicWhyParts.push(
-      `Ruled out for dealbreakers: ${Array.from(dealbreakers).map(cuisineLabel).join(", ")}.`
+      `Ruled out for dealbreakers: ${Array.from(dealbreakers).map(labelFor).join(", ")}.`
     );
   }
 
-  let chosenName = cuisineLabel(winner.pick);
+  let chosenName = labelFor(winner.pick);
   let chosenMeta: Record<string, unknown> = {
     source: "heuristic",
     pick: winner.pick,
@@ -111,7 +118,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   };
   let alsoConsidered: unknown = runnerUps.map((r) => ({
     pick: r.pick,
-    label: cuisineLabel(r.pick),
+    label: labelFor(r.pick),
     score: r.score,
     breadth: r.breadth,
   }));
@@ -125,12 +132,12 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
         timeSlot: occasion.timeSlot,
         rankedTallies: ranked.slice(0, 5).map((r) => ({
           pick: r.pick,
-          label: cuisineLabel(r.pick),
+          label: labelFor(r.pick),
           score: r.score,
           breadth: r.breadth,
           firstPlaceVotes: r.firstPlaceVotes,
         })),
-        dealbreakerLabels: Array.from(dealbreakers).map(cuisineLabel),
+        dealbreakerLabels: Array.from(dealbreakers).map(labelFor),
         budgets: occasion.answers.map((a) => a.budget).filter((b): b is string => Boolean(b)),
         vibes: occasion.answers.map((a) => a.vibe).filter((v): v is string => Boolean(v)),
       });
@@ -144,7 +151,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
           cuisine: aiPick.cuisine,
           why: aiPick.why,
           sourceUrl: aiPick.sourceUrl,
-          heuristicPick: cuisineLabel(winner.pick),
+          heuristicPick: labelFor(winner.pick),
           totalAnswers,
         };
         alsoConsidered = aiPick.alsoConsidered;

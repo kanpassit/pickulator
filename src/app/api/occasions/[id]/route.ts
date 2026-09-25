@@ -15,6 +15,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       group: { include: { members: true } },
       answers: { select: { memberId: true } },
       result: true,
+      customOptions: { orderBy: { createdAt: "asc" } },
     },
   });
 
@@ -42,5 +43,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     answeredCount: answeredIds.size,
     totalMembers: occasion.group.members.length,
     result: occasion.result,
+    customOptions: occasion.customOptions.map((o) => ({
+      id: o.id,
+      label: o.label,
+      hint: o.hint,
+      createdByMemberId: o.createdByMemberId,
+    })),
   });
 }

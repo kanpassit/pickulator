@@ -13,6 +13,18 @@ const LABELS: Record<string, string> = {
   pizza: "Pizza",
   viet: "Vietnamese",
   sandwich: "Sandwiches",
+  mexican: "Mexican",
+  chinese: "Chinese",
+  greek: "Greek",
+  bbq: "BBQ",
+  seafood: "Seafood",
+  steakhouse: "Steakhouse",
+  vegan: "Vegan",
+  breakfast: "Breakfast",
+  wings: "Wings",
+  poke: "Poke",
+  dimsum: "Dim Sum",
+  ethiopian: "Ethiopian",
 };
 
 export function cuisineLabel(id: string): string {
