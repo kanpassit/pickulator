@@ -11,10 +11,17 @@ type ClosedOccasion = {
   closedAt: string | null;
   result: { chosenName: string } | null;
 };
-type Group = { id: string; name: string; occasions: ClosedOccasion[] };
+type Group = { id: string; name: string; hostUserId: string; occasions: ClosedOccasion[] };
 type Me = { id: string; name: string; email: string } | null;
 
-type Row = { occasionId: string; groupName: string; type: string; closedAt: string | null; chosenName: string };
+type Row = {
+  occasionId: string;
+  groupName: string;
+  type: string;
+  closedAt: string | null;
+  chosenName: string;
+  isHost: boolean;
+};
 
 function formatDate(iso: string | null) {
   if (!iso) return "";
@@ -24,6 +31,7 @@ function formatDate(iso: string | null) {
 export default function HistoryPage() {
   const [me, setMe] = useState<Me | undefined>(undefined);
   const [rows, setRows] = useState<Row[] | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -32,7 +40,7 @@ export default function HistoryPage() {
       .catch(() => setMe(null));
   }, []);
 
-  useEffect(() => {
+  function loadHistory() {
     if (!me) return;
     fetch("/api/groups")
       .then((res) => res.json())
@@ -45,13 +53,30 @@ export default function HistoryPage() {
             type: o.type,
             closedAt: o.closedAt,
             chosenName: o.result?.chosenName ?? "No pick",
+            isHost: me !== null && me !== undefined && g.hostUserId === me.id,
           }))
         );
         flat.sort((a, b) => (b.closedAt ?? "").localeCompare(a.closedAt ?? ""));
         setRows(flat);
       })
       .catch(() => setRows([]));
+  }
+
+  useEffect(() => {
+    loadHistory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [me]);
+
+  async function deleteOccasion(occasionId: string, chosenName: string) {
+    if (!window.confirm(`Delete "${chosenName}"? This removes it from everyone's history and can't be undone.`)) return;
+    setDeletingId(occasionId);
+    try {
+      const res = await fetch(`/api/occasions/${occasionId}`, { method: "DELETE" });
+      if (res.ok) loadHistory();
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   if (me === undefined) {
     return <div className="w-full flex-1 flex items-center justify-center text-muted">Loading…</div>;
@@ -94,9 +119,24 @@ export default function HistoryPage() {
                   {r.groupName} · {r.type[0]}{r.type.slice(1).toLowerCase()} · {formatDate(r.closedAt)}
                 </div>
               </div>
-              <Link href={`/result?occasionId=${r.occasionId}`} className="text-sm font-semibold text-primary shrink-0 ml-3">
-                View
-              </Link>
+              <div className="flex items-center gap-3 shrink-0 ml-3">
+                <Link href={`/result?occasionId=${r.occasionId}`} className="text-sm font-semibold text-primary">
+                  View
+                </Link>
+                {r.isHost && (
+                  <button
+                    type="button"
+                    aria-label={`Delete ${r.chosenName}`}
+                    onClick={() => deleteOccasion(r.occasionId, r.chosenName)}
+                    disabled={deletingId === r.occasionId}
+                    className="w-8 h-8 flex items-center justify-center text-muted disabled:opacity-50"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0-1 14a2 2 0 01-2 2H7a2 2 0 01-2-2L4 6h16z" />
+                    </svg>
+                  </button>
+                )}
+              </div>
             </div>
           ))}
       </div>

@@ -44,6 +44,7 @@ export default function Home() {
   const [guestGroups, setGuestGroups] = useState<GuestGroup[] | null>(null);
   const [pendingLinks, setPendingLinks] = useState<PendingLink[]>([]);
   const [linkActionBusy, setLinkActionBusy] = useState<string | null>(null);
+  const [deletingOccasionId, setDeletingOccasionId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -89,6 +90,17 @@ export default function Home() {
       }
     } finally {
       setLinkActionBusy(null);
+    }
+  }
+
+  async function deleteOccasion(occasionId: string, chosenName: string) {
+    if (!window.confirm(`Delete "${chosenName}"? This removes it from everyone's history and can't be undone.`)) return;
+    setDeletingOccasionId(occasionId);
+    try {
+      const res = await fetch(`/api/occasions/${occasionId}`, { method: "DELETE" });
+      if (res.ok) loadGroups();
+    } finally {
+      setDeletingOccasionId(null);
     }
   }
 
@@ -335,20 +347,39 @@ export default function Home() {
             {active.occasions.length > 0 && (
               <div className="flex flex-col gap-1">
                 <div className="text-base font-semibold mb-1">Recent nights</div>
-                {active.occasions.map((o, i) => (
-                  <div
-                    key={o.id}
-                    className={`flex items-center justify-between py-3 ${i < active.occasions.length - 1 ? "border-b border-border" : ""}`}
-                  >
-                    <div className="flex flex-col gap-0.5">
-                      <div className="text-base font-semibold">{o.result?.chosenName ?? "No pick"}</div>
-                      <div className="text-sm text-muted">{o.type} · {formatDate(o.closedAt)}</div>
+                {active.occasions.map((o, i) => {
+                  const isHost = active.hostUserId === me.id;
+                  const chosenName = o.result?.chosenName ?? "No pick";
+                  return (
+                    <div
+                      key={o.id}
+                      className={`flex items-center justify-between py-3 ${i < active.occasions.length - 1 ? "border-b border-border" : ""}`}
+                    >
+                      <div className="flex flex-col gap-0.5">
+                        <div className="text-base font-semibold">{chosenName}</div>
+                        <div className="text-sm text-muted">{o.type} · {formatDate(o.closedAt)}</div>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <Link href={`/result?occasionId=${o.id}`} className="text-sm font-semibold text-primary">
+                          View
+                        </Link>
+                        {isHost && (
+                          <button
+                            type="button"
+                            aria-label={`Delete ${chosenName}`}
+                            onClick={() => deleteOccasion(o.id, chosenName)}
+                            disabled={deletingOccasionId === o.id}
+                            className="w-8 h-8 flex items-center justify-center text-muted disabled:opacity-50"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0-1 14a2 2 0 01-2 2H7a2 2 0 01-2-2L4 6h16z" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <Link href={`/result?occasionId=${o.id}`} className="text-sm font-semibold text-primary">
-                      View
-                    </Link>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </>

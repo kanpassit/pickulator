@@ -68,3 +68,25 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     })),
   });
 }
+
+/**
+ * Deletes one round - answers, feedback, and its result all cascade via the
+ * schema's onDelete: Cascade relations. Host only, matching group delete;
+ * used from "Recent nights" (Home) and History, and, unlike a group
+ * delete, doesn't touch the group or its other rounds.
+ */
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+
+  const { id } = await params;
+  const occasion = await prisma.occasion.findUnique({ where: { id }, include: { group: true } });
+  if (!occasion) return NextResponse.json({ error: "Round not found" }, { status: 404 });
+  if (occasion.group.hostUserId !== user.id) {
+    return NextResponse.json({ error: "Only the host can delete a round" }, { status: 403 });
+  }
+
+  await prisma.occasion.delete({ where: { id } });
+
+  return NextResponse.json({ ok: true });
+}
