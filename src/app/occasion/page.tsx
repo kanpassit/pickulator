@@ -27,28 +27,46 @@ const DAYS = [
   { id: "OTHER", name: "Pick date" },
 ];
 
-const TIMES: Record<string, string[]> = {
-  BRUNCH: ["10 am", "11 am", "12 pm"],
-  LUNCH: ["12 pm", "12:30", "1 pm"],
-  DINNER: ["6:30 pm", "7 pm", "8 pm"],
-  COFFEE: ["2 pm", "3:30 pm", "5 pm"],
-  DRINKS: ["6 pm", "7:30 pm", "9 pm"],
-  LATE: ["9:30 pm", "10:30", "11:30"],
+// Sensible default clock time per occasion, 24h "HH:MM" for <input type="time">.
+const DEFAULT_TIMES: Record<string, string> = {
+  BRUNCH: "10:30",
+  LUNCH: "12:00",
+  DINNER: "18:30",
+  COFFEE: "14:30",
+  DRINKS: "18:00",
+  LATE: "21:30",
 };
+
+function formatTime12h(hhmm: string): string {
+  const [hStr, mStr] = hhmm.split(":");
+  let h = parseInt(hStr, 10);
+  const m = mStr ?? "00";
+  if (Number.isNaN(h)) return hhmm;
+  const period = h >= 12 ? "PM" : "AM";
+  h = h % 12;
+  if (h === 0) h = 12;
+  return m === "00" ? `${h} ${period}` : `${h}:${m} ${period}`;
+}
 
 function OccasionContent() {
   const groupId = useSearchParams().get("groupId");
   const router = useRouter();
   const [occ, setOcc] = useState<string>("DINNER");
   const [day, setDay] = useState("TODAY");
-  const [slot, setSlot] = useState(1);
+  const [timeMode, setTimeMode] = useState<"SPECIFIC" | "FLEXIBLE">("SPECIFIC");
+  const [timeValue, setTimeValue] = useState(DEFAULT_TIMES.DINNER);
   const [location, setLocation] = useState("");
   const [maxDistance, setMaxDistance] = useState<string | null>(null);
   const [avoidRepeats, setAvoidRepeats] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const slotNames = [...TIMES[occ], "Flexible"];
+  function chooseOccasion(id: string) {
+    setOcc(id);
+    setTimeValue(DEFAULT_TIMES[id] ?? "18:00");
+  }
+
+  const timeSlot = timeMode === "FLEXIBLE" ? "Flexible" : formatTime12h(timeValue);
 
   async function send() {
     if (!groupId) {
@@ -65,7 +83,7 @@ function OccasionContent() {
           groupId,
           type: occ,
           day,
-          timeSlot: slotNames[slot],
+          timeSlot,
           location,
           maxDistance: location.trim() ? maxDistance : null,
           avoidRepeats,
@@ -106,10 +124,7 @@ function OccasionContent() {
             <button
               key={o.id}
               type="button"
-              onClick={() => {
-                setOcc(o.id);
-                setSlot(1);
-              }}
+              onClick={() => chooseOccasion(o.id)}
               className="box-border h-32 p-3.5 rounded-[20px] border-2 bg-white flex flex-col justify-between items-start text-left"
               style={{ borderColor: on ? "var(--primary)" : "var(--border)" }}
             >
@@ -158,24 +173,43 @@ function OccasionContent() {
 
       <div className="flex flex-col gap-2.5">
         <div className="text-base font-semibold">What time?</div>
-        <div className="grid grid-cols-4 gap-2">
-          {slotNames.map((name, i) => {
-            const on = i === slot;
-            return (
-              <button
-                key={name}
-                type="button"
-                onClick={() => setSlot(i)}
-                className="box-border h-11 rounded-full border-2 text-sm font-semibold"
-                style={{ borderColor: on ? "var(--primary)" : "var(--border)", background: on ? "var(--tint-pink)" : "#FFFFFF" }}
-              >
-                {name}
-              </button>
-            );
-          })}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setTimeMode("SPECIFIC")}
+            className="box-border h-11 rounded-full border-2 text-sm font-semibold"
+            style={{
+              borderColor: timeMode === "SPECIFIC" ? "var(--primary)" : "var(--border)",
+              background: timeMode === "SPECIFIC" ? "var(--tint-pink)" : "#FFFFFF",
+            }}
+          >
+            Pick a time
+          </button>
+          <button
+            type="button"
+            onClick={() => setTimeMode("FLEXIBLE")}
+            className="box-border h-11 rounded-full border-2 text-sm font-semibold"
+            style={{
+              borderColor: timeMode === "FLEXIBLE" ? "var(--primary)" : "var(--border)",
+              background: timeMode === "FLEXIBLE" ? "var(--tint-pink)" : "#FFFFFF",
+            }}
+          >
+            Flexible
+          </button>
         </div>
+        {timeMode === "SPECIFIC" && (
+          <input
+            type="time"
+            step={900}
+            value={timeValue}
+            onChange={(e) => e.target.value && setTimeValue(e.target.value)}
+            className="box-border h-[52px] px-4 rounded-[14px] border border-[#B8AA98] bg-white text-base"
+          />
+        )}
         <div className="text-sm leading-[1.4] text-muted">
-          Times shift with the occasion. &quot;Flexible&quot; lets me search a wider window.
+          {timeMode === "SPECIFIC"
+            ? "15-minute increments. We'll aim for right around this time."
+            : "Flexible lets me search a wider window."}
         </div>
       </div>
 
@@ -244,7 +278,7 @@ function OccasionContent() {
 
       <div className="flex-grow" />
       {error && <div className="text-sm text-primary text-center">{error}</div>}
-      <div className="text-sm leading-[1.45] text-muted text-center">Everyone in the group gets a link to answer 5 quick questions.</div>
+      <div className="text-sm leading-[1.45] text-muted text-center">Everyone in the group gets a link to answer 4 quick questions.</div>
       <button
         type="button"
         onClick={send}

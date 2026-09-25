@@ -21,6 +21,8 @@ function DealbreakersContent() {
     return raw ? raw.split(",").filter(Boolean) : [];
   });
   const [customOptions, setCustomOptions] = useState<CustomOption[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!occasionId) return;
@@ -47,18 +49,38 @@ function DealbreakersContent() {
   if (budget) backQ.set("budget", budget);
   const backHref = `/budget?${backQ.toString()}`;
 
-  function next() {
-    const q = new URLSearchParams({ occasionId: occasionId ?? "", picks });
-    if (token) q.set("token", token);
-    if (vibe) q.set("vibe", vibe);
-    if (budget) q.set("budget", budget);
-    if (out.length) q.set("out", out.join(","));
-    router.push(`/location?${q.toString()}`);
+  async function submit() {
+    if (!occasionId) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/occasions/${occasionId}/answers`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...(token ? { linkToken: token } : {}),
+          rankedPicks: picks.split(",").filter(Boolean),
+          vibe,
+          budget,
+          dealbreakers: out,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Couldn't save your picks");
+        return;
+      }
+      const q = new URLSearchParams({ occasionId });
+      if (token) q.set("token", token);
+      router.push(`/waiting?${q.toString()}`);
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
     <div className="w-full flex-1 box-border px-6 pt-5 pb-6 flex flex-col gap-5">
-      <QuestionProgress step={4} total={5} label="Anything to rule out?" backHref={backHref} />
+      <QuestionProgress step={4} total={4} label="Anything to rule out?" backHref={backHref} />
 
       <div className="flex flex-col gap-2 mt-2">
         <h1 className="m-0 font-serif text-[34px] font-bold leading-[1.12]">Any dealbreakers?</h1>
@@ -87,13 +109,14 @@ function DealbreakersContent() {
       </div>
 
       <div className="flex-grow" />
+      {error && <div className="text-sm text-primary text-center">{error}</div>}
       <button
         type="button"
-        onClick={next}
-        disabled={!occasionId}
-        className="h-14 rounded-[14px] bg-primary text-white flex items-center justify-center text-[17px] font-semibold border-none"
+        onClick={submit}
+        disabled={!occasionId || busy}
+        className="h-14 rounded-[14px] bg-primary text-white flex items-center justify-center text-[17px] font-semibold border-none disabled:opacity-60"
       >
-        Next
+        {busy ? "Saving…" : "Submit my picks"}
       </button>
     </div>
   );

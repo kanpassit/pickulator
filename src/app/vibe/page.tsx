@@ -35,7 +35,7 @@ function VibeContent() {
 
   return (
     <div className="w-full flex-1 box-border px-6 pt-5 pb-6 flex flex-col gap-5">
-      <QuestionProgress step={2} total={5} label="What's the vibe?" backHref={backHref} />
+      <QuestionProgress step={2} total={4} label="What's the vibe?" backHref={backHref} />
 
       <div className="flex flex-col gap-2 mt-2">
         <h1 className="m-0 font-serif text-[34px] font-bold leading-[1.12]">What's the vibe?</h1>
