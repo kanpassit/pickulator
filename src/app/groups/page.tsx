@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
+import NotificationBell from "@/components/NotificationBell";
 
 type Member = { id: string; displayName: string; initial: string; tintColor: string; userId: string | null };
 type Group = { id: string; name: string; hostUserId: string; members: Member[] };
@@ -103,8 +104,9 @@ export default function GroupsPage() {
 
   return (
     <div className="relative overflow-hidden w-full flex-1 flex flex-col">
-      <div className="shrink-0 h-16 px-6 flex items-center border-b border-border bg-background">
+      <div className="shrink-0 h-16 px-6 flex items-center justify-between border-b border-border bg-background">
         <div className="font-serif text-xl font-bold">Your groups</div>
+        <NotificationBell />
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto px-6 pt-6 pb-4 flex flex-col gap-3">

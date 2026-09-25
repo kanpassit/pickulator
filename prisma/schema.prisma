@@ -246,17 +246,30 @@ model Feedback {
 }
 
 // Bell-icon notifications for account holders (guests get texts instead).
+// Generic notification inbox (one table for every event type, not one
+// table per type). actorUserId/groupId/relatedId are deliberately plain
+// strings, not foreign keys - a deleted account or group should never
+// corrupt a historical notification row. Created via notifyBestEffort()
+// (src/lib/notify.ts), never directly.
 model Notification {
   id     String @id @default(cuid())
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  type    String
-  message String
-  link    String?
-  read    Boolean @default(false)
+  type  String
+  title String
+  body  String?
+  link  String?
+
+  read   Boolean   @default(false)
+  readAt DateTime?
+
+  actorUserId String?
+  groupId     String?
+  relatedId   String?
 
   createdAt DateTime @default(now())
 
   @@index([userId])
+  @@index([userId, read])
 }

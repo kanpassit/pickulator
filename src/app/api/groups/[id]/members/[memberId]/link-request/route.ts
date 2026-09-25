@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { notifyBestEffort } from "@/lib/notify";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -63,13 +64,15 @@ export async function POST(
     data: { pendingLinkUserId: targetUser.id, pendingLinkEmail: normalizedEmail, pendingLinkAt: new Date() },
   });
 
-  await prisma.notification.create({
-    data: {
-      userId: targetUser.id,
-      type: "MEMBER_LINK_REQUEST",
-      message: `${user.name} wants to link your account to "${member.displayName}" in ${group.name}`,
-      link: `/?linkMemberId=${memberId}`,
-    },
+  await notifyBestEffort({
+    userId: targetUser.id,
+    type: "MEMBER_LINK_REQUEST",
+    title: `${user.name} wants to link your account`,
+    body: `to "${member.displayName}" in ${group.name}`,
+    link: "/",
+    actorUserId: user.id,
+    groupId: group.id,
+    relatedId: memberId,
   });
 
   return NextResponse.json({
@@ -103,7 +106,7 @@ export async function DELETE(
 
   if (member.pendingLinkUserId) {
     await prisma.notification.deleteMany({
-      where: { userId: member.pendingLinkUserId, type: "MEMBER_LINK_REQUEST", link: `/?linkMemberId=${memberId}` },
+      where: { userId: member.pendingLinkUserId, type: "MEMBER_LINK_REQUEST", relatedId: memberId },
     });
   }
 

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import BottomNav from "@/components/BottomNav";
+import NotificationBell from "@/components/NotificationBell";
 
 type Member = { id: string; displayName: string; initial: string; tintColor: string; userId: string | null };
 type ClosedOccasion = {
@@ -206,9 +207,12 @@ export default function Home() {
           </div>
           <div className="font-serif text-xl font-bold">Pickulator</div>
         </div>
-        <button type="button" onClick={logout} className="text-sm font-semibold text-muted">
-          Log out
-        </button>
+        <div className="flex items-center gap-1">
+          <NotificationBell />
+          <button type="button" onClick={logout} className="text-sm font-semibold text-muted">
+            Log out
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto px-6 pt-6 pb-4 flex flex-col gap-6">
