@@ -74,9 +74,10 @@ model User {
   dietaryNotes String?
   travelMode   TravelMode?
 
-  memberships   GroupMember[]
-  hostedGroups  Group[]        @relation("GroupHost")
-  notifications Notification[]
+  memberships        GroupMember[]
+  hostedGroups       Group[]        @relation("GroupHost")
+  notifications      Notification[]
+  pendingMemberLinks GroupMember[]  @relation("PendingMemberLink")
 }
 
 model Group {
@@ -114,6 +115,15 @@ model GroupMember {
   // Set when a host invites "by email" for someone without a matching
   // account yet (Invite.dc.html) — resolved once they sign up.
   pendingEmail String?
+
+  // Host-initiated request to move this guest's history onto a registered
+  // account (Invite screen's "Link to account"). Doesn't take effect —
+  // userId stays null — until that account's owner accepts it themselves
+  // (see /api/pending-links). Declining or canceling just clears these.
+  pendingLinkUserId String?
+  pendingLinkUser   User?     @relation("PendingMemberLink", fields: [pendingLinkUserId], references: [id])
+  pendingLinkEmail  String?
+  pendingLinkAt     DateTime?
 
   // The personal link token (…/j/<token>). Resettable by the host; history
   // stays on this same GroupMember row when reset ("Reset link" in

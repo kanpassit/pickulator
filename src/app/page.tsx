@@ -18,6 +18,13 @@ type GuestGroup = {
   member: { id: string; displayName: string; initial: string; tintColor: string; linkToken: string };
   occasion: { id: string; type: string; hasAnswered: boolean } | null;
 };
+type PendingLink = {
+  memberId: string;
+  displayName: string;
+  initial: string;
+  tintColor: string;
+  group: { id: string; name: string };
+};
 
 const GROUP_KEY = "pk_group_id";
 
@@ -34,6 +41,8 @@ export default function Home() {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [guestGroups, setGuestGroups] = useState<GuestGroup[] | null>(null);
+  const [pendingLinks, setPendingLinks] = useState<PendingLink[]>([]);
+  const [linkActionBusy, setLinkActionBusy] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -55,9 +64,32 @@ export default function Home() {
       .catch(() => setGroups([]));
   }
 
+  function loadPendingLinks() {
+    fetch("/api/pending-links")
+      .then((res) => res.json())
+      .then((body) => setPendingLinks(body.requests ?? []))
+      .catch(() => setPendingLinks([]));
+  }
+
   useEffect(() => {
-    if (me) loadGroups();
+    if (me) {
+      loadGroups();
+      loadPendingLinks();
+    }
   }, [me]);
+
+  async function respondToLink(memberId: string, action: "accept" | "decline") {
+    setLinkActionBusy(memberId);
+    try {
+      const res = await fetch(`/api/pending-links/${memberId}/${action}`, { method: "POST" });
+      if (res.ok) {
+        loadPendingLinks();
+        if (action === "accept") loadGroups();
+      }
+    } finally {
+      setLinkActionBusy(null);
+    }
+  }
 
   useEffect(() => {
     if (me === null) {
@@ -180,6 +212,46 @@ export default function Home() {
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto px-6 pt-6 pb-4 flex flex-col gap-6">
+        {pendingLinks.length > 0 && (
+          <div className="flex flex-col gap-2.5">
+            {pendingLinks.map((p) => (
+              <div key={p.memberId} className="bg-white border-2 border-primary rounded-[16px] p-4 flex flex-col gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: p.tintColor }}>
+                    {p.initial}
+                  </div>
+                  <div className="flex flex-col gap-0.5 min-w-0">
+                    <div className="text-[15px] font-semibold">Link your account to &quot;{p.displayName}&quot;?</div>
+                    <div className="text-[13px] text-muted truncate">
+                      In {p.group.name} — this brings over their past answers and history.
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => respondToLink(p.memberId, "decline")}
+                    disabled={linkActionBusy === p.memberId}
+                    className="flex-1 h-11 rounded-[10px] border-2 text-sm font-semibold disabled:opacity-60"
+                    style={{ borderColor: "var(--border)" }}
+                  >
+                    Decline
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => respondToLink(p.memberId, "accept")}
+                    disabled={linkActionBusy === p.memberId}
+                    className="flex-1 h-11 rounded-[10px] text-sm font-semibold border-none disabled:opacity-60"
+                    style={{ background: "var(--primary)", color: "#FFFFFF" }}
+                  >
+                    Accept
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {groups === null && <div className="text-muted">Loading your groups…</div>}
 
         {groups !== null && groups.length === 0 && (

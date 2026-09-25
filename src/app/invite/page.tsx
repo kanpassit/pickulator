@@ -13,6 +13,7 @@ type Member = {
   pendingEmail: string | null;
   userId: string | null;
   linkOpenedAt: string | null;
+  pendingLinkEmail: string | null;
 };
 
 function InviteContent() {
@@ -24,6 +25,11 @@ function InviteContent() {
   const [error, setError] = useState<string | null>(null);
   const [newLink, setNewLink] = useState<{ name: string; path: string } | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+
+  const [linkFormFor, setLinkFormFor] = useState<string | null>(null);
+  const [linkEmailValue, setLinkEmailValue] = useState("");
+  const [linkBusy, setLinkBusy] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
 
   function load() {
     if (!groupId) return;
@@ -78,6 +84,35 @@ function InviteContent() {
     if (res.ok) load();
   }
 
+  async function sendLinkRequest(memberId: string) {
+    if (!groupId || !linkEmailValue.trim()) return;
+    setLinkBusy(true);
+    setLinkError(null);
+    try {
+      const res = await fetch(`/api/groups/${groupId}/members/${memberId}/link-request`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: linkEmailValue.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setLinkError(data.error ?? "Couldn't send that request");
+        return;
+      }
+      setLinkFormFor(null);
+      setLinkEmailValue("");
+      load();
+    } finally {
+      setLinkBusy(false);
+    }
+  }
+
+  async function cancelLinkRequest(memberId: string) {
+    if (!groupId) return;
+    const res = await fetch(`/api/groups/${groupId}/members/${memberId}/link-request`, { method: "DELETE" });
+    if (res.ok) load();
+  }
+
   if (!groupId) {
     return <div className="w-full flex-1 flex items-center justify-center text-muted">No group selected.</div>;
   }
@@ -107,41 +142,107 @@ function InviteContent() {
         {(members ?? []).map((m, i) => (
           <div
             key={m.id}
-            className={`flex items-center gap-3 py-3.5 ${i < (members?.length ?? 0) - 1 ? "border-b border-border" : ""}`}
+            className={`flex flex-col gap-2.5 py-3.5 ${i < (members?.length ?? 0) - 1 ? "border-b border-border" : ""}`}
           >
-            <div className="w-11 h-11 shrink-0 rounded-full flex items-center justify-center text-[17px] font-bold" style={{ background: m.tintColor }}>
-              {m.initial}
-            </div>
-            <div className="flex-grow min-w-0 flex flex-col gap-0.5">
-              <div className="text-base font-semibold">{m.displayName}</div>
-              <div className="text-[13px] text-muted">
-                {m.userId ? "Account" : m.pendingEmail ? "Invited by email" : "Guest"} ·{" "}
-                {m.linkOpenedAt ? "opened" : "not opened"}
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 shrink-0 rounded-full flex items-center justify-center text-[17px] font-bold" style={{ background: m.tintColor }}>
+                {m.initial}
               </div>
+              <div className="flex-grow min-w-0 flex flex-col gap-0.5">
+                <div className="text-base font-semibold">{m.displayName}</div>
+                <div className="text-[13px] text-muted">
+                  {m.userId ? "Account" : m.pendingEmail ? "Invited by email" : "Guest"} ·{" "}
+                  {m.linkOpenedAt ? "opened" : "not opened"}
+                </div>
+              </div>
+              <button
+                type="button"
+                aria-label={`Reset link for ${m.displayName}`}
+                onClick={() => resetLink(m.id)}
+                className="w-11 h-11 shrink-0 box-border rounded-full border-2 border-border bg-white flex items-center justify-center"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 12a8 8 0 11-2.3-5.6" />
+                  <path d="M20 4v5h-5" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={() => copy(m.id, `/j/${m.linkToken}`)}
+                className="w-[92px] h-11 shrink-0 box-border rounded-full border-2 font-bold text-sm"
+                style={{
+                  borderColor: copied === m.id ? "var(--olive)" : "var(--primary)",
+                  background: copied === m.id ? "var(--tint-green)" : "#FFFFFF",
+                  color: copied === m.id ? "var(--green-dark)" : "var(--primary)",
+                }}
+              >
+                {copied === m.id ? "Copied" : "Copy link"}
+              </button>
             </div>
-            <button
-              type="button"
-              aria-label={`Reset link for ${m.displayName}`}
-              onClick={() => resetLink(m.id)}
-              className="w-11 h-11 shrink-0 box-border rounded-full border-2 border-border bg-white flex items-center justify-center"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20 12a8 8 0 11-2.3-5.6" />
-                <path d="M20 4v5h-5" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              onClick={() => copy(m.id, `/j/${m.linkToken}`)}
-              className="w-[92px] h-11 shrink-0 box-border rounded-full border-2 font-bold text-sm"
-              style={{
-                borderColor: copied === m.id ? "var(--olive)" : "var(--primary)",
-                background: copied === m.id ? "var(--tint-green)" : "#FFFFFF",
-                color: copied === m.id ? "var(--green-dark)" : "var(--primary)",
-              }}
-            >
-              {copied === m.id ? "Copied" : "Copy link"}
-            </button>
+
+            {!m.userId && (
+              <div className="pl-[56px] flex flex-col gap-2">
+                {m.pendingLinkEmail ? (
+                  <div className="flex items-center justify-between gap-2 text-[13px]">
+                    <span className="text-muted">Waiting for {m.pendingLinkEmail} to confirm</span>
+                    <button
+                      type="button"
+                      onClick={() => cancelLinkRequest(m.id)}
+                      className="shrink-0 font-semibold text-primary"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : linkFormFor === m.id ? (
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex gap-2">
+                      <input
+                        type="email"
+                        placeholder="their-registered@email.com"
+                        value={linkEmailValue}
+                        onChange={(e) => setLinkEmailValue(e.target.value)}
+                        className="flex-grow min-w-0 box-border h-10 px-3 rounded-[10px] border text-sm"
+                        style={{ borderColor: "var(--border)" }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => sendLinkRequest(m.id)}
+                        disabled={!linkEmailValue.trim() || linkBusy}
+                        className="shrink-0 h-10 px-3 rounded-[10px] text-sm font-semibold border-none disabled:opacity-60"
+                        style={{ background: "var(--primary)", color: "#FFFFFF" }}
+                      >
+                        {linkBusy ? "Sending…" : "Send"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLinkFormFor(null);
+                          setLinkError(null);
+                          setLinkEmailValue("");
+                        }}
+                        className="shrink-0 h-10 px-3 rounded-[10px] text-sm font-semibold border-2"
+                        style={{ borderColor: "var(--border)" }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                    {linkError && <div className="text-[13px] text-primary">{linkError}</div>}
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLinkFormFor(m.id);
+                      setLinkError(null);
+                      setLinkEmailValue("");
+                    }}
+                    className="self-start text-[13px] font-semibold text-primary"
+                  >
+                    Link to account
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         ))}
       </div>
