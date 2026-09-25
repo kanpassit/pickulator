@@ -71,7 +71,13 @@ function ResultContent() {
 
   return (
     <div className="w-full flex-1 box-border px-6 pt-5 pb-6 flex flex-col gap-[22px]">
-      <div className="flex items-center justify-center h-11 text-sm text-muted">{data.group.name} · Decided</div>
+      <div className="flex items-center justify-between h-11">
+        <div className="w-11 h-11" />
+        <div className="flex-1 text-center text-sm text-muted">{data.group.name} · Decided</div>
+        <Link href="/" className="w-11 h-11 flex items-center justify-center text-sm font-semibold text-muted">
+          Done
+        </Link>
+      </div>
 
       <div className="flex flex-col gap-2.5">
         <div className="text-[13px] font-bold tracking-[0.08em] uppercase text-primary">Tonight&apos;s pick</div>
