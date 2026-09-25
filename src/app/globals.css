@@ -36,15 +36,25 @@
   --font-sans: var(--font-sans);
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), system-ui, sans-serif;
-}
+/*
+ * These are base-level defaults, so they're wrapped in Tailwind's "base"
+ * layer. That guarantees any utility class (text-white, text-primary,
+ * bg-primary, etc.) always wins over them - previously this block sat
+ * outside any @layer, which (per the CSS cascade-layers spec) let it beat
+ * even Tailwind's "utilities" layer and made e.g. "text-white" buttons
+ * render in the same red as their bg-primary background.
+ */
+@layer base {
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans), system-ui, sans-serif;
+  }
 
-a {
-  color: var(--primary);
-}
-a:hover {
-  color: var(--primary-hover);
+  a {
+    color: var(--primary);
+  }
+  a:hover {
+    color: var(--primary-hover);
+  }
 }
