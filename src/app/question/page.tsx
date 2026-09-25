@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 type Option = { id: string; name: string; hint: string; dot: string };
 
@@ -28,9 +28,29 @@ const SETS: Option[][] = [
 
 const ALL: Record<string, Option> = Object.fromEntries(SETS.flat().map((o) => [o.id, o]));
 
-export default function QuestionPage() {
+function QuestionContent() {
+  const params = useSearchParams();
+  const occasionId = params.get("occasionId");
+  const token = params.get("token");
+  const router = useRouter();
+
   const [picks, setPicks] = useState<string[]>([]);
   const [set, setSet] = useState(0);
+  const [label, setLabel] = useState("New round");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!occasionId) return;
+    fetch(`/api/occasions/${occasionId}`)
+      .then((res) => res.json())
+      .then((body) => {
+        if (body.group && body.occasion) {
+          setLabel(`${body.group.name} · ${body.occasion.type[0]}${body.occasion.type.slice(1).toLowerCase()}`);
+        }
+      })
+      .catch(() => {});
+  }, [occasionId]);
 
   const full = picks.length >= 3;
   const opts = SETS[set % SETS.length];
@@ -43,22 +63,35 @@ export default function QuestionPage() {
     });
   }
 
+  async function submit() {
+    if (!occasionId || !full) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/occasions/${occasionId}/answers`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(token ? { linkToken: token, rankedPicks: picks } : { rankedPicks: picks }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Couldn't save your picks");
+        return;
+      }
+      const q = new URLSearchParams({ occasionId });
+      if (token) q.set("token", token);
+      router.push(`/waiting?${q.toString()}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="w-full flex-1 box-border px-6 pt-5 pb-6 flex flex-col gap-5">
       <div className="flex items-center justify-between h-11">
-        <Link href="/occasion" aria-label="Back" className="w-11 h-11 -ml-2.5 flex items-center justify-center">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M15 5l-7 7 7 7" />
-          </svg>
-        </Link>
-        <div className="text-sm text-muted">Maricon · Dinner tonight</div>
-        <div className="text-sm font-semibold w-11 text-right">1 of 5</div>
-      </div>
-
-      <div className="flex gap-1.5">
-        {[0, 1, 2, 3, 4].map((i) => (
-          <div key={i} className="flex-grow h-1.5 rounded-full" style={{ background: i === 0 ? "var(--primary)" : "var(--border)" }} />
-        ))}
+        <div className="w-11 h-11" />
+        <div className="text-sm text-muted">{label}</div>
+        <div className="w-11" />
       </div>
 
       <div className="flex flex-col gap-2 mt-2">
@@ -149,18 +182,27 @@ export default function QuestionPage() {
         </svg>
         <span>Hidden until everyone has answered</span>
       </div>
-      <Link
-        href={full ? "/waiting" : "#"}
-        aria-disabled={!full}
-        className="h-14 rounded-[14px] flex items-center justify-center text-[17px] font-semibold no-underline"
+      {error && <div className="text-sm text-primary text-center">{error}</div>}
+      <button
+        type="button"
+        onClick={submit}
+        disabled={!full || busy || !occasionId}
+        className="h-14 rounded-[14px] flex items-center justify-center text-[17px] font-semibold border-none disabled:cursor-not-allowed"
         style={{
           background: full ? "var(--primary)" : "var(--border)",
           color: full ? "#FFFFFF" : "var(--muted)",
-          pointerEvents: full ? "auto" : "none",
         }}
       >
-        {full ? "Next" : `Pick ${3 - picks.length} more`}
-      </Link>
+        {busy ? "Saving…" : full ? "Submit my picks" : `Pick ${3 - picks.length} more`}
+      </button>
     </div>
+  );
+}
+
+export default function QuestionPage() {
+  return (
+    <Suspense fallback={<div className="w-full flex-1 flex items-center justify-center text-muted">Loading…</div>}>
+      <QuestionContent />
+    </Suspense>
   );
 }

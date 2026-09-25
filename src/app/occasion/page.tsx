@@ -1,39 +1,68 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const OCCASIONS = [
-  { id: "brunch", name: "Brunch", hint: "Late morning, eggs and something sweet", tint: "var(--tint-yellow)", icon: "M12 7a5 5 0 100 10 5 5 0 000-10zM12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" },
-  { id: "lunch", name: "Lunch", hint: "Midday, quick or lingering", tint: "var(--tint-green)", icon: "M3 12h18a9 9 0 01-18 0zM8 8c0-2 1-3 1-5M13 8c0-2 1-3 1-5" },
-  { id: "dinner", name: "Dinner", hint: "A proper sit-down evening", tint: "var(--tint-pink)", icon: "M7 3v7a2 2 0 002 2v9M11 3v7a2 2 0 01-2 2M17 21V3c-2 1-3.5 4-3.5 8h3.5" },
-  { id: "coffee", name: "Coffee", hint: "Cafes, tea, something sweet", tint: "var(--tint-tan)", icon: "M4 9h12v5a5 5 0 01-5 5h-2a5 5 0 01-5-5V9zM16 10h1.5a2.5 2.5 0 010 5H16M8 3v2M12 3v2" },
-  { id: "drinks", name: "Drinks", hint: "Bars, cocktails, small plates", tint: "#E6DCCB", icon: "M4 4h16l-8 9-8-9zM12 13v7M8 20h8" },
-  { id: "late", name: "Late night", hint: "After 9, somewhere still open", tint: "var(--tint-pink)", icon: "M20 14.5A8.5 8.5 0 019.5 4 7 7 0 1020 14.5z" },
+  { id: "BRUNCH", name: "Brunch", hint: "Late morning, eggs and something sweet", tint: "var(--tint-yellow)", icon: "M12 7a5 5 0 100 10 5 5 0 000-10zM12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" },
+  { id: "LUNCH", name: "Lunch", hint: "Midday, quick or lingering", tint: "var(--tint-green)", icon: "M3 12h18a9 9 0 01-18 0zM8 8c0-2 1-3 1-5M13 8c0-2 1-3 1-5" },
+  { id: "DINNER", name: "Dinner", hint: "A proper sit-down evening", tint: "var(--tint-pink)", icon: "M7 3v7a2 2 0 002 2v9M11 3v7a2 2 0 01-2 2M17 21V3c-2 1-3.5 4-3.5 8h3.5" },
+  { id: "COFFEE", name: "Coffee", hint: "Cafes, tea, something sweet", tint: "var(--tint-tan)", icon: "M4 9h12v5a5 5 0 01-5 5h-2a5 5 0 01-5-5V9zM16 10h1.5a2.5 2.5 0 010 5H16M8 3v2M12 3v2" },
+  { id: "DRINKS", name: "Drinks", hint: "Bars, cocktails, small plates", tint: "#E6DCCB", icon: "M4 4h16l-8 9-8-9zM12 13v7M8 20h8" },
+  { id: "LATE", name: "Late night", hint: "After 9, somewhere still open", tint: "var(--tint-pink)", icon: "M20 14.5A8.5 8.5 0 019.5 4 7 7 0 1020 14.5z" },
 ] as const;
 
 const DAYS = [
-  { id: "today", name: "Today" },
-  { id: "tomorrow", name: "Tomorrow" },
-  { id: "weekend", name: "Weekend" },
-  { id: "other", name: "Pick date" },
+  { id: "TODAY", name: "Today" },
+  { id: "TOMORROW", name: "Tomorrow" },
+  { id: "WEEKEND", name: "Weekend" },
+  { id: "OTHER", name: "Pick date" },
 ];
 
 const TIMES: Record<string, string[]> = {
-  brunch: ["10 am", "11 am", "12 pm"],
-  lunch: ["12 pm", "12:30", "1 pm"],
-  dinner: ["6:30 pm", "7 pm", "8 pm"],
-  coffee: ["2 pm", "3:30 pm", "5 pm"],
-  drinks: ["6 pm", "7:30 pm", "9 pm"],
-  late: ["9:30 pm", "10:30", "11:30"],
+  BRUNCH: ["10 am", "11 am", "12 pm"],
+  LUNCH: ["12 pm", "12:30", "1 pm"],
+  DINNER: ["6:30 pm", "7 pm", "8 pm"],
+  COFFEE: ["2 pm", "3:30 pm", "5 pm"],
+  DRINKS: ["6 pm", "7:30 pm", "9 pm"],
+  LATE: ["9:30 pm", "10:30", "11:30"],
 };
 
-export default function OccasionPage() {
-  const [occ, setOcc] = useState("dinner");
-  const [day, setDay] = useState("today");
+function OccasionContent() {
+  const groupId = useSearchParams().get("groupId");
+  const router = useRouter();
+  const [occ, setOcc] = useState<string>("DINNER");
+  const [day, setDay] = useState("TODAY");
   const [slot, setSlot] = useState(1);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const slotNames = [...TIMES[occ], "Flexible"];
+
+  async function send() {
+    if (!groupId) {
+      setError("No group selected.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/occasions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ groupId, type: occ, day, timeSlot: slotNames[slot] }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Couldn't start that round");
+        return;
+      }
+      router.push(`/question?occasionId=${data.occasion.id}`);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <div className="w-full flex-1 box-border px-6 pt-5 pb-6 flex flex-col gap-[22px]">
@@ -43,13 +72,13 @@ export default function OccasionPage() {
             <path d="M15 5l-7 7 7 7" />
           </svg>
         </Link>
-        <div className="text-sm text-muted">Maricon · New round</div>
+        <div className="text-sm text-muted">New round</div>
         <div className="w-11" />
       </div>
 
       <div className="flex flex-col gap-2 mt-2">
         <h1 className="m-0 font-serif text-[34px] font-bold leading-[1.12]">What&apos;s the occasion?</h1>
-        <div className="text-[15px] leading-[1.45] text-muted">You set this once and everyone in Maricon answers for it.</div>
+        <div className="text-[15px] leading-[1.45] text-muted">You set this once and everyone in the group answers for it.</div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -133,13 +162,24 @@ export default function OccasionPage() {
       </div>
 
       <div className="flex-grow" />
-      <div className="text-sm leading-[1.45] text-muted text-center">Jo and Sam each get a link to answer 5 quick questions.</div>
-      <Link
-        href="/question"
-        className="h-14 rounded-[14px] bg-primary text-white flex items-center justify-center text-[17px] font-semibold no-underline"
+      {error && <div className="text-sm text-primary text-center">{error}</div>}
+      <div className="text-sm leading-[1.45] text-muted text-center">Everyone in the group gets a link to answer 5 quick questions.</div>
+      <button
+        type="button"
+        onClick={send}
+        disabled={busy || !groupId}
+        className="h-14 rounded-[14px] bg-primary text-white flex items-center justify-center text-[17px] font-semibold disabled:opacity-60"
       >
-        Send links to Maricon
-      </Link>
+        {busy ? "Starting…" : "Send links to the group"}
+      </button>
     </div>
+  );
+}
+
+export default function OccasionPage() {
+  return (
+    <Suspense fallback={<div className="w-full flex-1 flex items-center justify-center text-muted">Loading…</div>}>
+      <OccasionContent />
+    </Suspense>
   );
 }

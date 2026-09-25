@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 /**
- * Status snapshot for an occasion: used by the Waiting screen to show who
- * has answered without revealing anyone's actual (hidden) answers.
+ * Status snapshot for an occasion: who has answered (not what), the group's
+ * host (so the client can show host-only actions), and the full Result once
+ * the round is closed.
  */
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -29,9 +30,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       timeSlot: occasion.timeSlot,
       status: occasion.status,
       closeMode: occasion.closeMode,
-      hasResult: Boolean(occasion.result),
     },
-    group: { id: occasion.group.id, name: occasion.group.name },
+    group: { id: occasion.group.id, name: occasion.group.name, hostUserId: occasion.group.hostUserId },
     members: occasion.group.members.map((m) => ({
       id: m.id,
       displayName: m.displayName,
@@ -41,5 +41,6 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     })),
     answeredCount: answeredIds.size,
     totalMembers: occasion.group.members.length,
+    result: occasion.result,
   });
 }

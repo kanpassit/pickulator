@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { generateLinkToken, initialFor, tintForIndex } from "@/lib/tokens";
 
-/** Lists groups the current user hosts or belongs to. */
+/** Lists groups the current user hosts or belongs to, with recent closed rounds. */
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
@@ -14,6 +14,12 @@ export async function GET() {
     },
     include: {
       members: { orderBy: { createdAt: "asc" } },
+      occasions: {
+        where: { status: "CLOSED" },
+        include: { result: true },
+        orderBy: { closedAt: "desc" },
+        take: 5,
+      },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -56,5 +62,5 @@ export async function POST(req: NextRequest) {
     include: { members: true },
   });
 
-  return NextResponse.json({ group }, { status: 201 });
+  return NextResponse.json({ group: { ...group, occasions: [] } }, { status: 201 });
 }

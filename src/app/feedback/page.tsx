@@ -1,94 +1,139 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+
+const CHOICES = [
+  { id: "WENT", name: "We went here" },
+  { id: "ELSEWHERE", name: "Somewhere else" },
+  { id: "DIDNT_GO", name: "We didn't go" },
+] as const;
 
 const RATINGS = [
-  { id: "loved", name: "Loved it", bg: "var(--tint-green)" },
-  { id: "fine", name: "It was fine", bg: "var(--tint-yellow)" },
-  { id: "no", name: "Not again", bg: "var(--tint-pink)" },
-];
+  { id: "LOVED", name: "Loved it", bg: "var(--tint-green)" },
+  { id: "FINE", name: "It was fine", bg: "var(--tint-yellow)" },
+  { id: "NOT_AGAIN", name: "Not again", bg: "var(--tint-pink)" },
+] as const;
 
-export default function FeedbackPage() {
-  const [choice, setChoice] = useState("pick");
-  const [rating, setRating] = useState("loved");
+function FeedbackContent() {
+  const params = useSearchParams();
+  const occasionId = params.get("occasionId");
+  const token = params.get("token");
+  const router = useRouter();
+
+  const [pickName, setPickName] = useState<string | null>(null);
+  const [choice, setChoice] = useState<string>("WENT");
+  const [rating, setRating] = useState<string>("LOVED");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!occasionId) return;
+    fetch(`/api/occasions/${occasionId}`)
+      .then((res) => res.json())
+      .then((body) => setPickName(body.result?.chosenName ?? null))
+      .catch(() => {});
+  }, [occasionId]);
+
+  async function save() {
+    if (!occasionId) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/occasions/${occasionId}/feedback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...(token ? { linkToken: token } : {}),
+          choice,
+          rating: choice === "WENT" ? rating : null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Couldn't save your check-in");
+        return;
+      }
+      router.push("/");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <div className="w-full flex-1 box-border px-6 pt-5 pb-6 flex flex-col gap-[22px]">
-      <div className="flex items-center justify-center h-11 text-sm text-muted">Maricon · Check-in</div>
+      <div className="flex items-center justify-center h-11 text-sm text-muted">Check-in</div>
 
       <div className="flex flex-col gap-2">
-        <h1 className="m-0 font-serif text-[34px] font-bold leading-[1.12]">Where did Maricon end up?</h1>
-        <div className="text-[15px] leading-[1.45] text-muted">One tap helps me skip repeats and learn what you like.</div>
+        <h1 className="m-0 font-serif text-[34px] font-bold leading-[1.12]">Where did you end up?</h1>
+        <div className="text-[15px] leading-[1.45] text-muted">One tap helps skip repeats and learn what you like.</div>
       </div>
 
       <div className="flex flex-col gap-2.5">
-        <button
-          type="button"
-          onClick={() => setChoice("pick")}
-          className="box-border p-4 rounded-2xl border-2 bg-white flex items-center gap-3"
-          style={{ borderColor: choice === "pick" ? "var(--primary)" : "var(--border)" }}
-        >
-          <div className="flex-grow flex flex-col gap-0.5 text-left">
-            <div className="text-[17px] font-bold">Lotus Thai Kitchen</div>
-            <div className="text-sm text-muted">Our pick</div>
-          </div>
-          {choice === "pick" && (
-            <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 12l5 5L20 7" />
-              </svg>
+        {CHOICES.map((c) => (
+          <button
+            key={c.id}
+            type="button"
+            onClick={() => setChoice(c.id)}
+            className="box-border p-4 rounded-2xl border-2 bg-white flex items-center gap-3 text-left text-[17px] font-bold"
+            style={{ borderColor: choice === c.id ? "var(--primary)" : "var(--border)" }}
+          >
+            <div className="flex-grow flex flex-col gap-0.5">
+              <div>{c.id === "WENT" && pickName ? pickName : c.name}</div>
+              {c.id === "WENT" && pickName && <div className="text-sm font-normal text-muted">Our pick</div>}
             </div>
-          )}
-        </button>
-        <button
-          type="button"
-          onClick={() => setChoice("elsewhere")}
-          className="box-border p-4 rounded-2xl border-2 bg-white text-[17px] font-semibold text-left"
-          style={{ borderColor: choice === "elsewhere" ? "var(--primary)" : "var(--border)" }}
-        >
-          Somewhere else
-        </button>
-        <button
-          type="button"
-          onClick={() => setChoice("no")}
-          className="box-border p-4 rounded-2xl border-2 bg-white text-[17px] font-semibold text-left"
-          style={{ borderColor: choice === "no" ? "var(--primary)" : "var(--border)" }}
-        >
-          We didn&apos;t go
-        </button>
+            {choice === c.id && (
+              <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12l5 5L20 7" />
+                </svg>
+              </div>
+            )}
+          </button>
+        ))}
       </div>
 
-      <div className="rounded-2xl px-[18px] py-4 text-sm leading-[1.45]" style={{ background: "var(--tint-green)", color: "var(--green-dark)" }}>
-        Next round I&apos;ll steer away from Thai for a few weeks, unless someone asks for it.
-      </div>
-
-      <div className="flex-grow flex flex-col gap-2.5">
-        <div className="text-base font-semibold">How was it?</div>
-        <div className="grid grid-cols-3 gap-2">
-          {RATINGS.map((r) => {
-            const on = r.id === rating;
-            return (
-              <button
-                key={r.id}
-                type="button"
-                onClick={() => setRating(r.id)}
-                className="box-border h-14 rounded-[14px] border-2 text-[15px] font-semibold"
-                style={{ borderColor: on ? "var(--primary)" : "var(--border)", background: on ? r.bg : "#FFFFFF" }}
-              >
-                {r.name}
-              </button>
-            );
-          })}
+      {choice === "WENT" && (
+        <div className="flex-grow flex flex-col gap-2.5">
+          <div className="text-base font-semibold">How was it?</div>
+          <div className="grid grid-cols-3 gap-2">
+            {RATINGS.map((r) => {
+              const on = r.id === rating;
+              return (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => setRating(r.id)}
+                  className="box-border h-14 rounded-[14px] border-2 text-[15px] font-semibold"
+                  style={{ borderColor: on ? "var(--primary)" : "var(--border)", background: on ? r.bg : "#FFFFFF" }}
+                >
+                  {r.name}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
-      <Link
-        href="/"
-        className="h-14 rounded-[14px] bg-primary text-white flex items-center justify-center text-[17px] font-semibold no-underline"
+      {choice !== "WENT" && <div className="flex-grow" />}
+
+      {error && <div className="text-sm text-primary">{error}</div>}
+      <button
+        type="button"
+        onClick={save}
+        disabled={busy || !occasionId}
+        className="h-14 rounded-[14px] bg-primary text-white flex items-center justify-center text-[17px] font-semibold disabled:opacity-60"
       >
-        Save to Maricon&apos;s history
-      </Link>
+        {busy ? "Saving…" : "Save"}
+      </button>
     </div>
+  );
+}
+
+export default function FeedbackPage() {
+  return (
+    <Suspense fallback={<div className="w-full flex-1 flex items-center justify-center text-muted">Loading…</div>}>
+      <FeedbackContent />
+    </Suspense>
   );
 }

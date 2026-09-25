@@ -22,7 +22,7 @@ export default function BottomNav() {
       </button>
       <div className="flex-1 flex justify-center">
         <Link
-          href="/occasion"
+          href="/"
           aria-label="Start a new round"
           className="w-14 h-14 -mt-[22px] rounded-full bg-primary border-4 border-white shadow-[0_6px_16px_rgba(194,59,32,0.35)] flex items-center justify-center box-border"
         >
