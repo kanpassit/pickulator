@@ -24,6 +24,7 @@ function FeedbackContent() {
   const [pickName, setPickName] = useState<string | null>(null);
   const [choice, setChoice] = useState<string>("WENT");
   const [rating, setRating] = useState<string>("LOVED");
+  const [elsewhereName, setElsewhereName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,8 +36,11 @@ function FeedbackContent() {
       .catch(() => {});
   }, [occasionId]);
 
+  const ratedChoice = choice === "WENT" || choice === "ELSEWHERE";
+  const canSave = !busy && !!occasionId && (choice !== "ELSEWHERE" || elsewhereName.trim().length > 0);
+
   async function save() {
-    if (!occasionId) return;
+    if (!occasionId || !canSave) return;
     setBusy(true);
     setError(null);
     try {
@@ -46,7 +50,8 @@ function FeedbackContent() {
         body: JSON.stringify({
           ...(token ? { linkToken: token } : {}),
           choice,
-          rating: choice === "WENT" ? rating : null,
+          rating: ratedChoice ? rating : null,
+          notes: choice === "ELSEWHERE" ? elsewhereName.trim() : null,
         }),
       });
       const data = await res.json();
@@ -93,8 +98,21 @@ function FeedbackContent() {
         ))}
       </div>
 
-      {choice === "WENT" && (
+      {ratedChoice && (
         <div className="flex-grow flex flex-col gap-2.5">
+          {choice === "ELSEWHERE" && (
+            <div className="flex flex-col gap-2">
+              <div className="text-base font-semibold">Where did you go?</div>
+              <input
+                type="text"
+                placeholder="e.g. The Taco Stand"
+                value={elsewhereName}
+                onChange={(e) => setElsewhereName(e.target.value)}
+                className="box-border h-[52px] px-4 rounded-[14px] border-2 bg-white text-base"
+                style={{ borderColor: "var(--border)" }}
+              />
+            </div>
+          )}
           <div className="text-base font-semibold">How was it?</div>
           <div className="grid grid-cols-3 gap-2">
             {RATINGS.map((r) => {
@@ -115,13 +133,13 @@ function FeedbackContent() {
         </div>
       )}
 
-      {choice !== "WENT" && <div className="flex-grow" />}
+      {!ratedChoice && <div className="flex-grow" />}
 
       {error && <div className="text-sm text-primary">{error}</div>}
       <button
         type="button"
         onClick={save}
-        disabled={busy || !occasionId}
+        disabled={!canSave}
         className="h-14 rounded-[14px] bg-primary text-white flex items-center justify-center text-[17px] font-semibold disabled:opacity-60"
       >
         {busy ? "Saving…" : "Save"}
