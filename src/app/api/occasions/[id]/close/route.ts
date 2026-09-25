@@ -173,6 +173,8 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
           cuisine: aiPick.cuisine,
           why: aiPick.why,
           sourceUrl: aiPick.sourceUrl,
+          rating: aiPick.rating,
+          reviewCount: aiPick.reviewCount,
           heuristicPick: labelFor(winner.pick),
           totalAnswers,
         };

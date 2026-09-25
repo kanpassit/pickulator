@@ -18,6 +18,8 @@ type ClaudeMeta = {
   priceRange: string | null;
   cuisine: string;
   sourceUrl: string;
+  rating: number | null;
+  reviewCount: number | null;
   heuristicPick: string;
   totalAnswers: number;
 };
@@ -92,6 +94,20 @@ function ResultContent() {
               <div className="text-[15px] text-muted">
                 {meta.breadth} of {meta.totalAnswers} picked it
                 {meta.firstPlaceVotes > 0 ? ` · ${meta.firstPlaceVotes} ranked it first` : ""}
+              </div>
+            )}
+            {meta.source === "claude" && meta.rating && (
+              <div
+                className="self-start px-2.5 py-1 rounded-full text-[13px] font-semibold flex items-center gap-1"
+                style={{ background: "var(--tint-yellow)" }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                </svg>
+                <span>
+                  {meta.rating.toFixed(1)}
+                  {meta.reviewCount ? ` (${meta.reviewCount.toLocaleString()})` : ""}
+                </span>
               </div>
             )}
           </div>

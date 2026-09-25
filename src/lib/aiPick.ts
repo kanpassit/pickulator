@@ -36,6 +36,8 @@ export type AiPickResult = {
   cuisine: string;
   why: string;
   sourceUrl: string;
+  rating: number | null;
+  reviewCount: number | null;
   alsoConsidered: AiPickCandidate[];
 };
 
@@ -52,6 +54,14 @@ const PROPOSE_PICK_TOOL = {
       cuisine: { type: "string" },
       why: { type: "string", description: "2-4 sentences tying the pick to the group's answers below" },
       sourceUrl: { type: "string", description: "A URL from the search results confirming this restaurant exists" },
+      rating: {
+        type: "number",
+        description: "Google/Yelp star rating out of 5 if you found one in your search results (e.g. 4.3), omit entirely if you didn't see one - never estimate or guess a number",
+      },
+      reviewCount: {
+        type: "number",
+        description: "Number of reviews behind that rating if shown, omit entirely if you didn't see one",
+      },
       alsoConsidered: {
         type: "array",
         maxItems: 2,
@@ -109,7 +119,7 @@ ${
     ? `\nThe group wants somewhere NEW this time. They've already been to these places recently - do NOT recommend any of them again, as a top pick or as a backup: ${input.avoidNames.join(", ")}.\n`
     : ""
 }
-Search the web to find a real restaurant near that location matching the group's top cuisine preference (or their next-best preference if you can't verify a place for the top one). You MUST verify with a search result that it exists and is currently open for business before recommending it - never invent a restaurant, address, or URL. Then find up to 2 real backup alternatives you also verified. When you're done, call propose_pick with your final answer - don't just describe it in plain text.`;
+Search the web to find a real restaurant near that location matching the group's top cuisine preference (or their next-best preference if you can't verify a place for the top one). You MUST verify with a search result that it exists and is currently open for business before recommending it - never invent a restaurant, address, or URL. Prefer a well-reviewed option (roughly 3.5 stars and up on Google or Yelp) among places that otherwise fit; only fall back to something lower-rated if nothing meeting the other criteria has a decent rating. If your search results show a star rating and review count, include them - but never estimate, guess, or make one up if you didn't actually see it. Then find up to 2 real backup alternatives you also verified. When you're done, call propose_pick with your final answer - don't just describe it in plain text.`;
 
   const tools = [
     { type: "web_search_20250305", name: "web_search", max_uses: 4 },
@@ -151,6 +161,9 @@ Search the web to find a real restaurant near that location matching the group's
   const cuisine = String(proposal.cuisine ?? "").trim();
   const why = String(proposal.why ?? "").trim();
   const sourceUrl = String(proposal.sourceUrl ?? "").trim();
+  const ratingNum = typeof proposal.rating === "number" && Number.isFinite(proposal.rating) ? proposal.rating : null;
+  const reviewCountNum =
+    typeof proposal.reviewCount === "number" && Number.isFinite(proposal.reviewCount) ? proposal.reviewCount : null;
 
   // Guard against a degenerate/empty tool call rather than trusting it blindly.
   if (!name || !why) return null;
@@ -162,6 +175,8 @@ Search the web to find a real restaurant near that location matching the group's
     cuisine,
     why,
     sourceUrl,
+    rating: ratingNum !== null && ratingNum > 0 && ratingNum <= 5 ? ratingNum : null,
+    reviewCount: reviewCountNum !== null && reviewCountNum >= 0 ? reviewCountNum : null,
     alsoConsidered: Array.isArray(proposal.alsoConsidered)
       ? (proposal.alsoConsidered as unknown[]).slice(0, 2).map((a) => {
           const c = (a ?? {}) as Record<string, unknown>;
