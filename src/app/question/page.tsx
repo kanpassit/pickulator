@@ -24,6 +24,9 @@ function QuestionContent() {
   const [isRegistered, setIsRegistered] = useState(false);
   const [memberNames, setMemberNames] = useState<Record<string, string>>({});
   const [customOptions, setCustomOptions] = useState<CustomOption[]>([]);
+  const [myMemberId, setMyMemberId] = useState<string | null>(null);
+  const [isHost, setIsHost] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newLabel, setNewLabel] = useState("");
   const [newHint, setNewHint] = useState("");
@@ -42,6 +45,8 @@ function QuestionContent() {
         if (Array.isArray(body.members)) {
           setMemberNames(Object.fromEntries(body.members.map((m: { id: string; displayName: string }) => [m.id, m.displayName])));
         }
+        if (typeof body.myMemberId === "string") setMyMemberId(body.myMemberId);
+        setIsHost(!!body.isHost);
       })
       .catch(() => {});
     fetch("/api/auth/me")
@@ -95,6 +100,23 @@ function QuestionContent() {
       setShowAddForm(false);
     } finally {
       setAddBusy(false);
+    }
+  }
+
+  function canDelete(o: CustomOption) {
+    return isHost || (!!myMemberId && o.createdByMemberId === myMemberId);
+  }
+
+  async function deleteCustomOption(id: string) {
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/custom-options/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setCustomOptions((cur) => cur.filter((o) => o.id !== id));
+        setPicks((cur) => cur.filter((p) => p !== id));
+      }
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -189,26 +211,45 @@ function QuestionContent() {
           {customOptions.map((o) => {
             const idx = picks.indexOf(o.id);
             const on = idx >= 0;
+            const removable = canDelete(o);
             return (
-              <button
+              <div
                 key={o.id}
-                type="button"
-                onClick={() => toggle(o.id)}
-                className="box-border p-4 rounded-2xl border-2 bg-white flex items-center gap-3 text-left"
+                className="box-border rounded-2xl border-2 bg-white flex items-center"
                 style={{ borderColor: on ? "var(--primary)" : "var(--border)", opacity: !on && full ? 0.5 : 1 }}
               >
-                <div className="flex-grow flex flex-col gap-0.5">
-                  <div className="text-base font-bold">{o.label}</div>
-                  <div className="text-xs text-muted">
-                    {o.hint ? o.hint + " · " : ""}Added by {memberNames[o.createdByMemberId] ?? "a member"}
+                <button
+                  type="button"
+                  onClick={() => toggle(o.id)}
+                  className={`flex-grow min-w-0 p-4 flex items-center gap-3 text-left border-none bg-transparent ${removable ? "pr-2" : ""}`}
+                >
+                  <div className="flex-grow min-w-0 flex flex-col gap-0.5">
+                    <div className="text-base font-bold">{o.label}</div>
+                    <div className="text-xs text-muted">
+                      {o.hint ? o.hint + " · " : ""}Added by {memberNames[o.createdByMemberId] ?? "a member"}
+                    </div>
                   </div>
-                </div>
-                {on && (
-                  <div className="w-7 h-7 shrink-0 rounded-full bg-primary text-white flex items-center justify-center text-[15px] font-bold">
-                    {idx + 1}
-                  </div>
+                  {on && (
+                    <div className="w-7 h-7 shrink-0 rounded-full bg-primary text-white flex items-center justify-center text-[15px] font-bold">
+                      {idx + 1}
+                    </div>
+                  )}
+                </button>
+                {removable && (
+                  <button
+                    type="button"
+                    onClick={() => deleteCustomOption(o.id)}
+                    disabled={deletingId === o.id}
+                    aria-label={`Remove ${o.label}`}
+                    className="shrink-0 w-11 h-11 mr-1 rounded-full flex items-center justify-center border-none bg-transparent disabled:opacity-50"
+                    style={{ color: "var(--muted)" }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M6 6l12 12M18 6L6 18" />
+                    </svg>
+                  </button>
                 )}
-              </button>
+              </div>
             );
           })}
 

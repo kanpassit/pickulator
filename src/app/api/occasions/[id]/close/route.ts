@@ -35,10 +35,9 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const occasion = await prisma.occasion.findUnique({
     where: { id },
     include: {
-      group: true,
+      group: { include: { customOptions: true } },
       answers: true,
       result: true,
-      customOptions: true,
     },
   });
   if (!occasion) return NextResponse.json({ error: "Occasion not found" }, { status: 404 });
@@ -62,7 +61,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   // Custom options are free-text labels a member typed in, not static
   // cuisine ids - resolve those by id before falling back to cuisineLabel's
   // title-casing (which would otherwise mangle a custom option's cuid id).
-  const customLabelById = new Map(occasion.customOptions.map((o) => [o.id, o.label]));
+  const customLabelById = new Map(occasion.group.customOptions.map((o) => [o.id, o.label]));
   const labelFor = (pick: string) => customLabelById.get(pick) ?? cuisineLabel(pick);
 
   const tallies = new Map<string, Tally>();

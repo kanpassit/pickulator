@@ -3,10 +3,12 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 
 /**
- * Custom pick options for one round. Only signed-in members (not guests
+ * Custom pick options for a group. Only signed-in members (not guests
  * answering via their personal link) can create one - Question.dc.html
- * "Add your own" - but everyone in the occasion, guests included, can see
- * and pick whatever's been added while they haven't answered yet.
+ * "Add your own" - but everyone in the group, guests included, can see and
+ * pick from whatever's been added. Once added, an option is permanent: it
+ * shows up in every future round's rotation for this group until someone
+ * with permission deletes it (see DELETE /api/custom-options/[id]).
  */
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: occasionId } = await params;
@@ -45,7 +47,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const option = await prisma.customOption.create({
     data: {
-      occasionId,
+      groupId: occasion.groupId,
       label: trimmedLabel,
       hint: trimmedHint || null,
       createdByMemberId: member.id,
