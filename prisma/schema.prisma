@@ -1,0 +1,225 @@
+// Pickulator data model
+// Postgres via Neon (Vercel Storage integration), accessed through Prisma.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
+}
+
+enum OccasionType {
+  BRUNCH
+  LUNCH
+  DINNER
+  COFFEE
+  DRINKS
+  LATE
+}
+
+enum OccasionDay {
+  TODAY
+  TOMORROW
+  WEEKEND
+  OTHER
+}
+
+enum OccasionStatus {
+  OPEN
+  CLOSED
+}
+
+enum CloseMode {
+  ALL_ANSWERED
+  TIME
+  MANUAL
+}
+
+enum MemberRole {
+  HOST
+  MEMBER
+}
+
+enum TravelMode {
+  DRIVE
+  TRANSIT
+  WALK
+  BIKE
+}
+
+enum FeedbackChoice {
+  WENT
+  ELSEWHERE
+  DIDNT_GO
+}
+
+enum FeedbackRating {
+  LOVED
+  FINE
+  NOT_AGAIN
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime @default(now())
+
+  // Profile.dc.html: dietary needs apply to every round automatically
+  dietary      String[] @default([])
+  dietaryNotes String?
+  travelMode   TravelMode?
+
+  memberships   GroupMember[]
+  hostedGroups  Group[]        @relation("GroupHost")
+  notifications Notification[]
+}
+
+model Group {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  hostUserId String
+  host       User   @relation("GroupHost", fields: [hostUserId], references: [id])
+
+  members   GroupMember[]
+  occasions Occasion[]
+}
+
+// A person in a group. May or may not have a User account yet (guest link
+// flow — Join.dc.html). userId gets set later via the "claim" step when a
+// guest creates an account (Signup.dc.html) without losing their history.
+model GroupMember {
+  id      String @id @default(cuid())
+  groupId String
+  group   Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  displayName String
+  initial     String
+  tintColor   String
+  role        MemberRole @default(MEMBER)
+
+  // Optional mobile number for text reminders/check-ins (Texts.dc.html)
+  phone String?
+
+  // Set when a host invites "by email" for someone without a matching
+  // account yet (Invite.dc.html) — resolved once they sign up.
+  pendingEmail String?
+
+  // The personal link token (…/j/<token>). Resettable by the host; history
+  // stays on this same GroupMember row when reset ("Reset link" in
+  // Invite.dc.html invalidates the old token but keeps everything else).
+  linkToken     String    @unique
+  linkCreatedAt DateTime  @default(now())
+  linkOpenedAt  DateTime?
+
+  createdAt DateTime @default(now())
+
+  answers  Answer[]
+  feedback Feedback[]
+
+  @@index([groupId])
+}
+
+// One round ("Dinner tonight"). Occasion.dc.html.
+model Occasion {
+  id      String @id @default(cuid())
+  groupId String
+  group   Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  type     OccasionType
+  day      OccasionDay
+  timeSlot String
+
+  status    OccasionStatus @default(OPEN)
+  closeMode CloseMode      @default(ALL_ANSWERED)
+  closeAt   DateTime?
+
+  createdByMemberId String
+  createdAt         DateTime  @default(now())
+  closedAt          DateTime?
+
+  answers  Answer[]
+  result   Result?
+  feedback Feedback[]
+
+  @@index([groupId])
+}
+
+// One member's hidden answers for a round: Question (ranked picks), Vibe,
+// Budget, Dealbreakers, Location. Hidden from the group until everyone answers.
+model Answer {
+  id         String   @id @default(cuid())
+  occasionId String
+  occasion   Occasion @relation(fields: [occasionId], references: [id], onDelete: Cascade)
+
+  memberId String
+  member   GroupMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  rankedPicks  String[]    @default([]) // ordered option ids, top pick first
+  vibe         String?
+  budget       String?
+  dealbreakers String[]    @default([])
+  locationMode TravelMode?
+
+  answeredAt DateTime @default(now())
+
+  @@unique([occasionId, memberId])
+}
+
+// The computed pick for a round, once closed. Result.dc.html.
+model Result {
+  id         String   @id @default(cuid())
+  occasionId String   @unique
+  occasion   Occasion @relation(fields: [occasionId], references: [id], onDelete: Cascade)
+
+  chosenName       String
+  chosenMeta       Json // chips, why, travel-time bars, trip notes
+  alsoConsidered   Json?
+  vetoedByMemberId String?
+  vetoedOptionName String?
+
+  createdAt DateTime @default(now())
+}
+
+// Post-visit check-in. Feedback.dc.html / Texts.dc.html quick-tap replies.
+model Feedback {
+  id         String   @id @default(cuid())
+  occasionId String
+  occasion   Occasion @relation(fields: [occasionId], references: [id], onDelete: Cascade)
+
+  memberId String
+  member   GroupMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  choice FeedbackChoice
+  rating FeedbackRating?
+  notes  String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([occasionId, memberId])
+}
+
+// Bell-icon notifications for account holders (guests get texts instead).
+model Notification {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type    String
+  message String
+  link    String?
+  read    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
