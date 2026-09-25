@@ -12,6 +12,7 @@ export type RankedTally = {
 
 export type AiPickInput = {
   location: string;
+  maxDistance: string | null;
   occasionType: string;
   day: string;
   timeSlot: string;
@@ -88,7 +89,11 @@ export async function getAiRestaurantPick(input: AiPickInput): Promise<AiPickRes
     .join("\n");
 
   const userMessage = `A group of friends is deciding where to eat. Recommend ONE real, currently-operating restaurant near "${input.location}", using web search to verify it actually exists before you recommend it.
-
+${
+  input.maxDistance && input.maxDistance !== "No limit"
+    ? `The group only wants to travel within ${input.maxDistance} of "${input.location}" - do not recommend anywhere farther than that.\n`
+    : ""
+}
 Occasion: ${input.occasionType} on ${input.day}, around ${input.timeSlot}.
 
 Cuisine preferences (weighted by everyone's ranked top-3 picks; higher score = stronger group preference):

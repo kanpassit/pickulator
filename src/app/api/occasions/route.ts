@@ -17,12 +17,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { groupId, type, day, timeSlot, location, avoidRepeats } = (body ?? {}) as {
+  const { groupId, type, day, timeSlot, location, maxDistance, avoidRepeats } = (body ?? {}) as {
     groupId?: string;
     type?: string;
     day?: string;
     timeSlot?: string;
     location?: string;
+    maxDistance?: string;
     avoidRepeats?: unknown;
   };
 
@@ -57,6 +58,7 @@ export async function POST(req: NextRequest) {
       day: day as (typeof DAYS)[number],
       timeSlot: timeSlot.trim(),
       location: typeof location === "string" && location.trim().length > 0 ? location.trim() : null,
+      maxDistance: typeof maxDistance === "string" && maxDistance.trim().length > 0 ? maxDistance.trim() : null,
       avoidRepeats: avoidRepeats === true,
       createdByMemberId: hostMember.id,
     },

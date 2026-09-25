@@ -13,6 +13,13 @@ const OCCASIONS = [
   { id: "LATE", name: "Late night", hint: "After 9, somewhere still open", tint: "var(--tint-pink)", icon: "M20 14.5A8.5 8.5 0 019.5 4 7 7 0 1020 14.5z" },
 ] as const;
 
+const DISTANCES = [
+  { id: "5 miles", name: "5 mi" },
+  { id: "10 miles", name: "10 mi" },
+  { id: "20 miles", name: "20 mi" },
+  { id: "No limit", name: "No limit" },
+];
+
 const DAYS = [
   { id: "TODAY", name: "Today" },
   { id: "TOMORROW", name: "Tomorrow" },
@@ -36,6 +43,7 @@ function OccasionContent() {
   const [day, setDay] = useState("TODAY");
   const [slot, setSlot] = useState(1);
   const [location, setLocation] = useState("");
+  const [maxDistance, setMaxDistance] = useState<string | null>(null);
   const [avoidRepeats, setAvoidRepeats] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +61,15 @@ function OccasionContent() {
       const res = await fetch("/api/occasions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ groupId, type: occ, day, timeSlot: slotNames[slot], location, avoidRepeats }),
+        body: JSON.stringify({
+          groupId,
+          type: occ,
+          day,
+          timeSlot: slotNames[slot],
+          location,
+          maxDistance: location.trim() ? maxDistance : null,
+          avoidRepeats,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -178,6 +194,28 @@ function OccasionContent() {
           Give me a place to search near and I&apos;ll name an actual restaurant instead of just a cuisine.
         </div>
       </div>
+
+      {location.trim().length > 0 && (
+        <div className="flex flex-col gap-2.5">
+          <div className="text-base font-semibold">How far are you willing to drive?</div>
+          <div className="grid grid-cols-4 gap-2">
+            {DISTANCES.map((d) => {
+              const on = d.id === maxDistance;
+              return (
+                <button
+                  key={d.id}
+                  type="button"
+                  onClick={() => setMaxDistance(on ? null : d.id)}
+                  className="box-border h-11 rounded-full border-2 text-sm font-semibold"
+                  style={{ borderColor: on ? "var(--primary)" : "var(--border)", background: on ? "var(--tint-pink)" : "#FFFFFF" }}
+                >
+                  {d.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <button
         type="button"

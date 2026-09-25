@@ -148,6 +148,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
       const aiPick = await getAiRestaurantPick({
         location: occasion.location,
+        maxDistance: occasion.maxDistance,
         occasionType: occasion.type,
         day: occasion.day,
         timeSlot: occasion.timeSlot,
