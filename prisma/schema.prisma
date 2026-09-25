@@ -190,7 +190,7 @@ model CustomOption {
   hint  String?
 
   createdByMemberId String
-  createdByMember   GroupMember @relation(fields: [createdByMemberId], references: [id])
+  createdByMember   GroupMember @relation(fields: [createdByMemberId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 
