@@ -142,7 +142,7 @@ export default function Home() {
             <form onSubmit={createGroup} className="flex flex-col gap-3">
               <input
                 type="text"
-                placeholder="e.g. Maricon"
+                placeholder="e.g. The Regulars"
                 value={newGroupName}
                 onChange={(e) => setNewGroupName(e.target.value)}
                 className="box-border h-[52px] px-4 rounded-[14px] border border-[#B8AA98] bg-white text-base"
