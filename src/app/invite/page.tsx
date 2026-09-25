@@ -23,8 +23,9 @@ function InviteContent() {
   const [mode, setMode] = useState<"name" | "email">("name");
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [newLink, setNewLink] = useState<{ name: string; path: string } | null>(null);
+  const [added, setAdded] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [resettingId, setResettingId] = useState<string | null>(null);
 
   const [linkFormFor, setLinkFormFor] = useState<string | null>(null);
   const [linkEmailValue, setLinkEmailValue] = useState("");
@@ -62,7 +63,8 @@ function InviteContent() {
       setError(data.error ?? "Couldn't add that person");
       return;
     }
-    setNewLink({ name: data.member.displayName, path: data.member.joinPath });
+    setAdded(data.member.displayName);
+    setTimeout(() => setAdded((n) => (n === data.member.displayName ? null : n)), 2500);
     setValue("");
     load();
   }
@@ -78,10 +80,15 @@ function InviteContent() {
     }
   }
 
-  async function resetLink(memberId: string) {
+  async function resetClaim(memberId: string) {
     if (!groupId) return;
-    const res = await fetch(`/api/groups/${groupId}/members/${memberId}/reset-link`, { method: "POST" });
-    if (res.ok) load();
+    setResettingId(memberId);
+    try {
+      const res = await fetch(`/api/groups/${groupId}/members/${memberId}/reset-link`, { method: "POST" });
+      if (res.ok) load();
+    } finally {
+      setResettingId(null);
+    }
   }
 
   async function sendLinkRequest(memberId: string) {
@@ -117,6 +124,8 @@ function InviteContent() {
     return <div className="w-full flex-1 flex items-center justify-center text-muted">No group selected.</div>;
   }
 
+  const groupLinkPath = `/j/${groupId}`;
+
   return (
     <div className="w-full flex-1 box-border px-6 pt-5 pb-6 flex flex-col gap-[22px]">
       <div className="flex items-center justify-between h-11">
@@ -132,11 +141,27 @@ function InviteContent() {
       <div className="flex flex-col gap-2 mt-1">
         <h1 className="m-0 font-serif text-[34px] font-bold leading-[1.12]">Invite people</h1>
         <div className="text-[15px] leading-[1.45] text-muted">
-          Everyone gets their own link. It works for every round, so they only need to save it once.
+          One link for the whole group. Drop it in your group chat - whoever opens it picks their own name.
         </div>
       </div>
 
       {error && <div className="text-sm text-primary">{error}</div>}
+
+      <div className="rounded-[20px] p-4 flex flex-col gap-3" style={{ background: "var(--tint-green)" }}>
+        <div className="text-base font-bold" style={{ color: "var(--green-dark)" }}>Group invite link</div>
+        <div className="flex items-center gap-2.5">
+          <div className="flex-grow min-w-0 box-border h-11 px-3 rounded-xl bg-white flex items-center text-sm overflow-hidden whitespace-nowrap">
+            {typeof window !== "undefined" ? `${window.location.origin}${groupLinkPath}` : groupLinkPath}
+          </div>
+          <button
+            type="button"
+            onClick={() => copy("group", groupLinkPath)}
+            className="shrink-0 w-[92px] h-11 rounded-full border-none bg-primary text-white text-sm font-bold"
+          >
+            {copied === "group" ? "Copied" : "Copy link"}
+          </button>
+        </div>
+      </div>
 
       <div className="bg-white border border-border rounded-[20px] px-4 flex flex-col">
         {(members ?? []).map((m, i) => (
@@ -151,33 +176,24 @@ function InviteContent() {
               <div className="flex-grow min-w-0 flex flex-col gap-0.5">
                 <div className="text-base font-semibold">{m.displayName}</div>
                 <div className="text-[13px] text-muted">
-                  {m.userId ? "Account" : m.pendingEmail ? "Invited by email" : "Guest"} ·{" "}
-                  {m.linkOpenedAt ? "opened" : "not opened"}
+                  {m.userId ? "Account" : m.pendingEmail ? "Invited by email" : "Guest"}
+                  {!m.userId ? ` · ${m.linkOpenedAt ? "joined" : "hasn't joined yet"}` : ""}
                 </div>
               </div>
-              <button
-                type="button"
-                aria-label={`Reset link for ${m.displayName}`}
-                onClick={() => resetLink(m.id)}
-                className="w-11 h-11 shrink-0 box-border rounded-full border-2 border-border bg-white flex items-center justify-center"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20 12a8 8 0 11-2.3-5.6" />
-                  <path d="M20 4v5h-5" />
-                </svg>
-              </button>
-              <button
-                type="button"
-                onClick={() => copy(m.id, `/j/${m.linkToken}`)}
-                className="w-[92px] h-11 shrink-0 box-border rounded-full border-2 font-bold text-sm"
-                style={{
-                  borderColor: copied === m.id ? "var(--olive)" : "var(--primary)",
-                  background: copied === m.id ? "var(--tint-green)" : "#FFFFFF",
-                  color: copied === m.id ? "var(--green-dark)" : "var(--primary)",
-                }}
-              >
-                {copied === m.id ? "Copied" : "Copy link"}
-              </button>
+              {!m.userId && (
+                <button
+                  type="button"
+                  aria-label={`Not ${m.displayName}? Reset their claim`}
+                  onClick={() => resetClaim(m.id)}
+                  disabled={resettingId === m.id}
+                  className="w-11 h-11 shrink-0 box-border rounded-full border-2 border-border bg-white flex items-center justify-center disabled:opacity-50"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 12a8 8 0 11-2.3-5.6" />
+                    <path d="M20 4v5h-5" />
+                  </svg>
+                </button>
+              )}
             </div>
 
             {!m.userId && (
@@ -248,7 +264,10 @@ function InviteContent() {
       </div>
 
       <div className="flex flex-col gap-3">
-        <div className="text-base font-semibold">Add someone</div>
+        <div className="text-base font-semibold">Add a name to the list</div>
+        <div className="text-sm leading-[1.4] text-muted -mt-1">
+          Optional - saves people typing their own name when they open the link.
+        </div>
         <div className="grid grid-cols-2 gap-2">
           {(["name", "email"] as const).map((m) => (
             <button
@@ -276,25 +295,13 @@ function InviteContent() {
             type="submit"
             className="mt-2 h-14 rounded-[14px] border-none bg-primary text-white text-[17px] font-semibold"
           >
-            Create their link
+            Add
           </button>
         </form>
 
-        {newLink && (
-          <div className="rounded-[20px] p-4 flex flex-col gap-3" style={{ background: "var(--tint-green)" }}>
-            <div className="text-base font-bold" style={{ color: "var(--green-dark)" }}>Link ready for {newLink.name}</div>
-            <div className="flex items-center gap-2.5">
-              <div className="flex-grow min-w-0 box-border h-11 px-3 rounded-xl bg-white flex items-center text-sm overflow-hidden whitespace-nowrap">
-                {typeof window !== "undefined" ? `${window.location.origin}${newLink.path}` : newLink.path}
-              </div>
-              <button
-                type="button"
-                onClick={() => copy("new", newLink.path)}
-                className="shrink-0 w-[92px] h-11 rounded-full border-none bg-primary text-white text-sm font-bold"
-              >
-                {copied === "new" ? "Copied" : "Copy link"}
-              </button>
-            </div>
+        {added && (
+          <div className="rounded-[14px] px-4 py-3 text-sm font-semibold" style={{ background: "var(--tint-green)", color: "var(--green-dark)" }}>
+            Added {added} to the list.
           </div>
         )}
       </div>
@@ -305,7 +312,7 @@ function InviteContent() {
           <rect x="5" y="11" width="14" height="9" rx="2" />
           <path d="M8 11V8a4 4 0 018 0v3" />
         </svg>
-        <span>Anyone with a personal link can answer as that person, so send each one privately.</span>
+        <span>Anyone with this link can pick a name and answer as that person - share it only where your group can see it.</span>
       </div>
     </div>
   );

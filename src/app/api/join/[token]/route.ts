@@ -3,12 +3,61 @@ import { prisma } from "@/lib/prisma";
 import { setGuestCookie } from "@/lib/identity";
 
 /**
- * Resolves a personal invite/join link. No account is required — the token
- * itself is the person's identity for answering a round, matching the
- * Join screen's "No account needed."
+ * Resolves an invite link. Two shapes share this URL:
+ *
+ * - Group link (token === Group.id): the normal path now. One link per
+ *   group, shared in a group chat. Returns every member's name so the
+ *   person can pick who they are (see /api/join/[token]/claim) - no
+ *   identity is known yet, so no guest cookie is set here.
+ * - Personal link (token === GroupMember.linkToken): the old per-person
+ *   link shape, kept working for any already-shared links. Identity is
+ *   already known from the token itself.
  */
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
+
+  const group = await prisma.group.findUnique({
+    where: { id: token },
+    include: { members: { orderBy: { createdAt: "asc" } } },
+  });
+
+  if (group) {
+    const occasion = await prisma.occasion.findFirst({
+      where: { groupId: group.id, status: "OPEN" },
+      orderBy: { createdAt: "desc" },
+    });
+
+    let answeredMemberIds = new Set<string>();
+    if (occasion) {
+      const answers = await prisma.answer.findMany({
+        where: { occasionId: occasion.id },
+        select: { memberId: true },
+      });
+      answeredMemberIds = new Set(answers.map((a) => a.memberId));
+    }
+
+    return NextResponse.json({
+      mode: "group",
+      group: { id: group.id, name: group.name },
+      occasion: occasion
+        ? {
+            id: occasion.id,
+            type: occasion.type,
+            day: occasion.day,
+            timeSlot: occasion.timeSlot,
+            status: occasion.status,
+          }
+        : null,
+      members: group.members.map((m) => ({
+        id: m.id,
+        displayName: m.displayName,
+        initial: m.initial,
+        tintColor: m.tintColor,
+        hasAccount: Boolean(m.userId),
+        answered: answeredMemberIds.has(m.id),
+      })),
+    });
+  }
 
   const member = await prisma.groupMember.findUnique({
     where: { linkToken: token },
@@ -41,6 +90,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
   }
 
   const res = NextResponse.json({
+    mode: "member",
     group: { id: member.group.id, name: member.group.name },
     member: {
       id: member.id,
@@ -79,7 +129,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
   return res;
 }
 
-/** Sets the optional mobile number captured on the Join screen. */
+/** Sets the optional mobile number captured on the Join screen (personal-link path only). */
 export async function POST(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
 

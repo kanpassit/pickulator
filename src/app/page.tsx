@@ -335,7 +335,7 @@ export default function Home() {
               <div className="flex flex-col gap-1.5">
                 <div className="font-serif text-2xl font-semibold">Deciding tonight?</div>
                 <div className="text-[15px] leading-[1.45] text-muted">
-                  Start a round and everyone gets their own link. It takes about 30 seconds each.
+                  Start a round and share the group link. It takes about 30 seconds each.
                 </div>
               </div>
               <Link

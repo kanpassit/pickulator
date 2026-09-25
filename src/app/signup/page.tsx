@@ -40,7 +40,7 @@ export default function SignupPage() {
     <div className="w-full flex-1 box-border px-6 pt-5 pb-6 flex flex-col gap-6">
       <div className="flex flex-col gap-2 mt-4">
         <h1 className="m-0 font-serif text-[34px] font-bold leading-[1.12]">Create your account</h1>
-        <div className="text-[15px] leading-[1.45] text-muted">Start a group and send everyone their own link.</div>
+        <div className="text-[15px] leading-[1.45] text-muted">Start a group and share one link with everyone.</div>
       </div>
 
       <form onSubmit={submit} className="flex flex-col gap-3.5">
