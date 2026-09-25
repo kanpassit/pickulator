@@ -236,7 +236,7 @@ export default function Home() {
   const recentPicks = (groups ?? [])
     .flatMap((g) => g.occasions.map((o) => ({ ...o, groupName: g.name, isHost: g.hostUserId === me.id })))
     .sort((a, b) => (b.closedAt ?? "").localeCompare(a.closedAt ?? ""))
-    .slice(0, 4);
+    .slice(0, 6);
 
   return (
     <div className="relative overflow-hidden w-full flex-1 flex flex-col">
@@ -402,7 +402,7 @@ export default function Home() {
 
             {recentPicks.length > 0 && (
               <div className="flex flex-col gap-1">
-                <div className="text-[13px] font-semibold tracking-[0.06em] uppercase text-muted mb-1">Recently decided</div>
+                <div className="text-[13px] font-semibold tracking-[0.06em] uppercase text-muted mb-1">History</div>
                 {recentPicks.map((o, i) => {
                   const chosenName = o.result?.chosenName ?? "No pick";
                   return (

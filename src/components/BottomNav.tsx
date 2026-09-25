@@ -44,14 +44,16 @@ export default function BottomNav() {
         </Link>
       </div>
       <Link
-        href="/history"
-        className={`flex-1 flex flex-col items-center gap-1 text-xs font-semibold ${tabStyle("/history")}`}
+        href="/friends"
+        className={`flex-1 flex flex-col items-center gap-1 text-xs font-semibold ${tabStyle("/friends")}`}
       >
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="9" />
-          <path d="M12 7v5l3 2" />
+          <rect x="3" y="5" width="18" height="14" rx="2.5" />
+          <circle cx="9" cy="10.5" r="2" />
+          <path d="M5.5 16c0-1.8 1.4-3 3.5-3s3.5 1.2 3.5 3" />
+          <path d="M14.5 9.5h4M14.5 13h4" />
         </svg>
-        <span>History</span>
+        <span>Friends</span>
       </Link>
       <Link
         href="/account"
