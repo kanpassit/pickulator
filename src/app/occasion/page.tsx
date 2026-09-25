@@ -1,0 +1,145 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+
+const OCCASIONS = [
+  { id: "brunch", name: "Brunch", hint: "Late morning, eggs and something sweet", tint: "var(--tint-yellow)", icon: "M12 7a5 5 0 100 10 5 5 0 000-10zM12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" },
+  { id: "lunch", name: "Lunch", hint: "Midday, quick or lingering", tint: "var(--tint-green)", icon: "M3 12h18a9 9 0 01-18 0zM8 8c0-2 1-3 1-5M13 8c0-2 1-3 1-5" },
+  { id: "dinner", name: "Dinner", hint: "A proper sit-down evening", tint: "var(--tint-pink)", icon: "M7 3v7a2 2 0 002 2v9M11 3v7a2 2 0 01-2 2M17 21V3c-2 1-3.5 4-3.5 8h3.5" },
+  { id: "coffee", name: "Coffee", hint: "Cafes, tea, something sweet", tint: "var(--tint-tan)", icon: "M4 9h12v5a5 5 0 01-5 5h-2a5 5 0 01-5-5V9zM16 10h1.5a2.5 2.5 0 010 5H16M8 3v2M12 3v2" },
+  { id: "drinks", name: "Drinks", hint: "Bars, cocktails, small plates", tint: "#E6DCCB", icon: "M4 4h16l-8 9-8-9zM12 13v7M8 20h8" },
+  { id: "late", name: "Late night", hint: "After 9, somewhere still open", tint: "var(--tint-pink)", icon: "M20 14.5A8.5 8.5 0 019.5 4 7 7 0 1020 14.5z" },
+] as const;
+
+const DAYS = [
+  { id: "today", name: "Today" },
+  { id: "tomorrow", name: "Tomorrow" },
+  { id: "weekend", name: "Weekend" },
+  { id: "other", name: "Pick date" },
+];
+
+const TIMES: Record<string, string[]> = {
+  brunch: ["10 am", "11 am", "12 pm"],
+  lunch: ["12 pm", "12:30", "1 pm"],
+  dinner: ["6:30 pm", "7 pm", "8 pm"],
+  coffee: ["2 pm", "3:30 pm", "5 pm"],
+  drinks: ["6 pm", "7:30 pm", "9 pm"],
+  late: ["9:30 pm", "10:30", "11:30"],
+};
+
+export default function OccasionPage() {
+  const [occ, setOcc] = useState("dinner");
+  const [day, setDay] = useState("today");
+  const [slot, setSlot] = useState(1);
+
+  const slotNames = [...TIMES[occ], "Flexible"];
+
+  return (
+    <div className="w-full flex-1 box-border px-6 pt-5 pb-6 flex flex-col gap-[22px]">
+      <div className="flex items-center justify-between h-11">
+        <Link href="/" aria-label="Back" className="w-11 h-11 -ml-2.5 flex items-center justify-center">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 5l-7 7 7 7" />
+          </svg>
+        </Link>
+        <div className="text-sm text-muted">Maricon · New round</div>
+        <div className="w-11" />
+      </div>
+
+      <div className="flex flex-col gap-2 mt-2">
+        <h1 className="m-0 font-serif text-[34px] font-bold leading-[1.12]">What&apos;s the occasion?</h1>
+        <div className="text-[15px] leading-[1.45] text-muted">You set this once and everyone in Maricon answers for it.</div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        {OCCASIONS.map((o) => {
+          const on = o.id === occ;
+          return (
+            <button
+              key={o.id}
+              type="button"
+              onClick={() => {
+                setOcc(o.id);
+                setSlot(1);
+              }}
+              className="box-border h-32 p-3.5 rounded-[20px] border-2 bg-white flex flex-col justify-between items-start text-left"
+              style={{ borderColor: on ? "var(--primary)" : "var(--border)" }}
+            >
+              <div className="flex items-center justify-between w-full">
+                <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: o.tint }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d={o.icon} />
+                  </svg>
+                </div>
+                {on && (
+                  <div className="w-[26px] h-[26px] rounded-full bg-primary flex items-center justify-center">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M5 12l5 5L20 7" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <div className="text-lg font-bold">{o.name}</div>
+                <div className="text-[13px] leading-[1.3] text-muted">{o.hint}</div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex flex-col gap-2.5">
+        <div className="text-base font-semibold">Which day?</div>
+        <div className="grid grid-cols-4 gap-2">
+          {DAYS.map((d) => {
+            const on = d.id === day;
+            return (
+              <button
+                key={d.id}
+                type="button"
+                onClick={() => setDay(d.id)}
+                className="box-border h-11 rounded-full border-2 text-sm font-semibold"
+                style={{ borderColor: on ? "var(--primary)" : "var(--border)", background: on ? "var(--tint-pink)" : "#FFFFFF" }}
+              >
+                {d.name}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2.5">
+        <div className="text-base font-semibold">What time?</div>
+        <div className="grid grid-cols-4 gap-2">
+          {slotNames.map((name, i) => {
+            const on = i === slot;
+            return (
+              <button
+                key={name}
+                type="button"
+                onClick={() => setSlot(i)}
+                className="box-border h-11 rounded-full border-2 text-sm font-semibold"
+                style={{ borderColor: on ? "var(--primary)" : "var(--border)", background: on ? "var(--tint-pink)" : "#FFFFFF" }}
+              >
+                {name}
+              </button>
+            );
+          })}
+        </div>
+        <div className="text-sm leading-[1.4] text-muted">
+          Times shift with the occasion. &quot;Flexible&quot; lets me search a wider window.
+        </div>
+      </div>
+
+      <div className="flex-grow" />
+      <div className="text-sm leading-[1.45] text-muted text-center">Jo and Sam each get a link to answer 5 quick questions.</div>
+      <Link
+        href="/question"
+        className="h-14 rounded-[14px] bg-primary text-white flex items-center justify-center text-[17px] font-semibold no-underline"
+      >
+        Send links to Maricon
+      </Link>
+    </div>
+  );
+}
