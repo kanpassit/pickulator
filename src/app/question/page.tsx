@@ -35,7 +35,7 @@ function QuestionContent() {
 
   useEffect(() => {
     if (!occasionId) return;
-    fetch(`/api/occasions/${occasionId}`)
+    fetch(`/api/occasions/${occasionId}${token ? `?token=${encodeURIComponent(token)}` : ""}`)
       .then((res) => res.json())
       .then((body) => {
         if (body.group && body.occasion) {
@@ -53,7 +53,7 @@ function QuestionContent() {
       .then((res) => res.json())
       .then((body) => setIsRegistered(!!body.user))
       .catch(() => {});
-  }, [occasionId]);
+  }, [occasionId, token]);
 
   const full = picks.length >= 3;
   const opts = SETS[set % SETS.length];

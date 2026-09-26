@@ -273,3 +273,19 @@ model Notification {
   @@index([userId])
   @@index([userId, read])
 }
+
+// Sliding-window-ish request counter for basic abuse throttling (login,
+// signup, invite-link lookups - see src/lib/rateLimit.ts). No separate
+// Redis/KV service exists for this app, so this trades a small amount of
+// Postgres traffic for not adding new infrastructure. Rows are cheap and
+// short-lived; rateLimit.ts opportunistically prunes old windows.
+model RateLimitHit {
+  id          String   @id @default(cuid())
+  bucket      String
+  key         String
+  windowStart DateTime
+  count       Int      @default(1)
+
+  @@unique([bucket, key, windowStart])
+  @@index([bucket, key])
+}

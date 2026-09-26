@@ -2,10 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { setSessionCookie } from "@/lib/auth";
+import { rateLimited, clientIp } from "@/lib/rateLimit";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(req: NextRequest) {
+  if (await rateLimited("signup", clientIp(req), { max: 5, windowMs: 60 * 60_000 })) {
+    return NextResponse.json({ error: "Too many accounts created from this connection. Try again later." }, { status: 429 });
+  }
+
   let body: unknown;
   try {
     body = await req.json();

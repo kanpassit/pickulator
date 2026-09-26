@@ -31,11 +31,11 @@ function FeedbackContent() {
 
   useEffect(() => {
     if (!occasionId) return;
-    fetch(`/api/occasions/${occasionId}`)
+    fetch(`/api/occasions/${occasionId}${token ? `?token=${encodeURIComponent(token)}` : ""}`)
       .then((res) => res.json())
       .then((body) => setPickName(body.result?.chosenName ?? null))
       .catch(() => {});
-  }, [occasionId]);
+  }, [occasionId, token]);
 
   const ratedChoice = choice === "WENT" || choice === "ELSEWHERE";
   const canSave = !busy && !!occasionId && (choice !== "ELSEWHERE" || elsewhereName.trim().length > 0);

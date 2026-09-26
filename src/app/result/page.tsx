@@ -38,13 +38,15 @@ type OccData = {
 };
 
 function ResultContent() {
-  const occasionId = useSearchParams().get("occasionId");
+  const params = useSearchParams();
+  const occasionId = params.get("occasionId");
+  const token = params.get("token");
   const [data, setData] = useState<OccData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!occasionId) return;
-    fetch(`/api/occasions/${occasionId}`)
+    fetch(`/api/occasions/${occasionId}${token ? `?token=${encodeURIComponent(token)}` : ""}`)
       .then(async (res) => {
         const body = await res.json();
         if (!res.ok) throw new Error(body.error ?? "Couldn't load this round");
@@ -52,7 +54,7 @@ function ResultContent() {
       })
       .then(setData)
       .catch((err) => setError(err.message));
-  }, [occasionId]);
+  }, [occasionId, token]);
 
   if (error) {
     return <div className="w-full flex-1 flex items-center justify-center text-muted">{error}</div>;

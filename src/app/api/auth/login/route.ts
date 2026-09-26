@@ -2,8 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { setSessionCookie } from "@/lib/auth";
+import { rateLimited, clientIp } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
+  if (await rateLimited("login", clientIp(req), { max: 10, windowMs: 10 * 60_000 })) {
+    return NextResponse.json({ error: "Too many attempts. Try again in a few minutes." }, { status: 429 });
+  }
+
   let body: unknown;
   try {
     body = await req.json();

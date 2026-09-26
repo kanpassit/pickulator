@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { resolveMemberId } from "@/lib/identity";
 
 /**
  * Status snapshot for an occasion: who has answered (not what), the group's
@@ -8,7 +9,7 @@ import { getCurrentUser } from "@/lib/auth";
  * round is closed, and the group's permanent custom options (added once,
  * carried into every round - see custom-options/route.ts).
  */
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
   const occasion = await prisma.occasion.findUnique({
@@ -26,6 +27,17 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   });
 
   if (!occasion) return NextResponse.json({ error: "Occasion not found" }, { status: 404 });
+
+  // Access check: only someone with an actual stake in this group can see
+  // it - a signed-in member/host, a guest with this group's cookie set, or
+  // a guest presenting their personal link's token fresh (?token=...), the
+  // same resolution used for submitting answers/feedback. Anyone else gets
+  // the same 404 as a made-up id, not a 403 that would confirm it exists.
+  const token = req.nextUrl.searchParams.get("token");
+  const viewerMemberId = await resolveMemberId(occasion.groupId, { linkToken: token });
+  if (!viewerMemberId) {
+    return NextResponse.json({ error: "Occasion not found" }, { status: 404 });
+  }
 
   const answeredIds = new Set(occasion.answers.map((a) => a.memberId));
 

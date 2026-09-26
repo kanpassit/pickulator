@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { setGuestCookie } from "@/lib/identity";
+import { rateLimited, clientIp } from "@/lib/rateLimit";
 
 /**
  * Resolves an invite link. Two shapes share this URL:
@@ -13,8 +14,12 @@ import { setGuestCookie } from "@/lib/identity";
  *   link shape, kept working for any already-shared links. Identity is
  *   already known from the token itself.
  */
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
+
+  if (await rateLimited("join-lookup", clientIp(req), { max: 40, windowMs: 10 * 60_000 })) {
+    return NextResponse.json({ error: "Too many attempts. Try again shortly." }, { status: 429 });
+  }
 
   const group = await prisma.group.findUnique({
     where: { id: token },

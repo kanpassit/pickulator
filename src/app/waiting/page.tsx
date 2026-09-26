@@ -25,11 +25,11 @@ function WaitingContent() {
 
   const load = useCallback(() => {
     if (!occasionId) return;
-    fetch(`/api/occasions/${occasionId}`)
+    fetch(`/api/occasions/${occasionId}${token ? `?token=${encodeURIComponent(token)}` : ""}`)
       .then((res) => res.json())
       .then((body) => setData(body))
       .catch(() => {});
-  }, [occasionId]);
+  }, [occasionId, token]);
 
   useEffect(() => {
     fetch("/api/auth/me")

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { setGuestCookie } from "@/lib/identity";
 import { generateLinkToken, initialFor, tintForIndex } from "@/lib/tokens";
+import { rateLimited, clientIp } from "@/lib/rateLimit";
 
 /**
  * The "who are you" step for a group invite link (see GET /api/join/[token]
@@ -12,6 +13,10 @@ import { generateLinkToken, initialFor, tintForIndex } from "@/lib/tokens";
  */
 export async function POST(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
+
+  if (await rateLimited("join-claim", clientIp(req), { max: 20, windowMs: 10 * 60_000 })) {
+    return NextResponse.json({ error: "Too many attempts. Try again shortly." }, { status: 429 });
+  }
 
   const group = await prisma.group.findUnique({
     where: { id: token },
