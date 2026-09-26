@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { setGuestCookie } from "@/lib/identity";
 import { generateLinkToken, initialFor, tintForIndex } from "@/lib/tokens";
 import { rateLimited, clientIp } from "@/lib/rateLimit";
+import { getCurrentUser } from "@/lib/auth";
 
 /**
  * The "who are you" step for a group invite link (see GET /api/join/[token]
@@ -70,6 +71,26 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
     await prisma.groupMember.update({ where: { id: member.id }, data: { linkOpenedAt: new Date() } });
   }
 
+  // If the caller is signed in, attach this membership to their real
+  // account instead of leaving it a bare guest cookie - possessing the
+  // invite link and explicitly picking/typing your own name here is the
+  // same trust the personal-link flow already extends to a guest cookie,
+  // so a signed-in visitor's own claim shouldn't end up as a second,
+  // disconnected identity invisible from their actual home screen (see
+  // pickulator-join-confirmation-fix.md for how that was found). Skipped
+  // when they already have a *different* membership in this same group -
+  // one membership per account per group, same rule as
+  // pending-links/[memberId]/accept.
+  const currentUser = await getCurrentUser();
+  let linkedToCaller = false;
+  if (currentUser && !member.userId) {
+    const alreadyInGroup = group.members.some((m) => m.userId === currentUser.id);
+    if (!alreadyInGroup) {
+      member = await prisma.groupMember.update({ where: { id: member.id }, data: { userId: currentUser.id } });
+      linkedToCaller = true;
+    }
+  }
+
   const occasion = await prisma.occasion.findFirst({
     where: { groupId: group.id, status: "OPEN" },
     orderBy: { createdAt: "desc" },
@@ -94,8 +115,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
     occasion: occasion
       ? { id: occasion.id, type: occasion.type, day: occasion.day, timeSlot: occasion.timeSlot, hasAnswered }
       : null,
+    linked: linkedToCaller,
   });
 
-  setGuestCookie(res, group.id, member.linkToken);
+  // A now-linked member is resolved via the caller's own session from here
+  // on (see resolveMemberId) - no guest cookie needed, and skipping it
+  // avoids leaving a stale one behind for an identity that's no longer a
+  // guest.
+  if (!linkedToCaller) {
+    setGuestCookie(res, group.id, member.linkToken);
+  }
   return res;
 }
