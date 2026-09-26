@@ -48,6 +48,7 @@ function GroupJoinContent({ token, data }: { token: string; data: GroupJoinData 
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
+  const [joinedAs, setJoinedAs] = useState<{ displayName: string; initial: string; tintColor: string } | null>(null);
 
   async function claim(body: { memberId?: string; name?: string }, busyKey: string) {
     setBusyId(busyKey);
@@ -67,11 +68,38 @@ function GroupJoinContent({ token, data }: { token: string; data: GroupJoinData 
         const dest = claimed.occasion.hasAnswered ? "waiting" : "question";
         router.push(`/${dest}?occasionId=${claimed.occasion.id}&token=${claimed.member.linkToken}`);
       } else {
-        router.push("/");
+        // No round open yet - confirm right here instead of silently
+        // bouncing to "/", which (for a guest) buries this in a small
+        // "Welcome back" card under a generic sign-in screen, and (for
+        // someone already signed into a *different* account, e.g. testing)
+        // shows that account's unrelated groups with no mention of this
+        // one at all. Either way it read as "nothing happened."
+        setJoinedAs({
+          displayName: claimed.member.displayName,
+          initial: claimed.member.initial,
+          tintColor: claimed.member.tintColor,
+        });
       }
     } finally {
       setBusyId(null);
     }
+  }
+
+  if (joinedAs) {
+    return (
+      <div className="w-full flex-1 box-border px-6 pt-5 pb-6 flex flex-col items-center justify-center gap-4 text-center">
+        <div
+          className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold"
+          style={{ background: joinedAs.tintColor }}
+        >
+          {joinedAs.initial}
+        </div>
+        <div className="font-serif text-2xl font-bold">You&apos;re in, {joinedAs.displayName}!</div>
+        <div className="text-[15px] leading-[1.45] text-muted max-w-[280px]">
+          No round is open in {data.group.name} yet. Come back to this link once one starts and we&apos;ll have something for you to vote on.
+        </div>
+      </div>
+    );
   }
 
   return (
