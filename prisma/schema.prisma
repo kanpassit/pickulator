@@ -74,6 +74,15 @@ model User {
   name         String
   createdAt    DateTime @default(now())
 
+  // Bumped on every password reset so existing session tokens - which are
+  // self-verifying signed cookies, not rows in a revocable session table -
+  // stop validating everywhere at once. See src/lib/session.ts: the token
+  // embeds the tokenVersion it was issued under, and getCurrentUser()
+  // rejects a mismatch. A missing tv on an older, pre-this-column token is
+  // treated as 0, so existing logged-in users aren't signed out by this
+  // migration itself - only by an actual future reset.
+  tokenVersion Int @default(0)
+
   // Profile.dc.html: dietary needs apply to every round automatically
   dietary      String[] @default([])
   dietaryNotes String?
@@ -86,6 +95,7 @@ model User {
 
   friendshipsSent     Friendship[] @relation("FriendshipRequester")
   friendshipsReceived Friendship[] @relation("FriendshipAddressee")
+  resetTokens         ResetToken[]
 }
 
 model Group {
@@ -312,6 +322,24 @@ model Friendship {
 
   @@unique([requesterId, addresseeId])
   @@index([addresseeId, status])
+}
+
+// A single-use, time-limited token for the "forgot password" flow (see
+// /api/auth/forgot-password and /api/auth/reset-password). Higher entropy
+// than the personal group-invite link token (generateResetToken() vs.
+// generateLinkToken() in src/lib/tokens.ts) since this one can take over
+// an account, not just join a group as a name-only guest.
+model ResetToken {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
 }
 
 // Sliding-window-ish request counter for basic abuse throttling (login,

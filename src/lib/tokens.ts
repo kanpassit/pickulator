@@ -9,6 +9,19 @@ export function generateLinkToken(): string {
     .replace(/=+$/, "");
 }
 
+/**
+ * Higher-entropy URL-safe random token for account-takeover-capable flows
+ * (password reset) - 32 bytes vs. the 9 used for a group-invite link,
+ * since this one is worth brute-forcing and that one isn't.
+ */
+export function generateResetToken(): string {
+  return randomBytes(32)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
 const TINTS = ["#F6DDD4", "#E6EAD3", "#F3E3B5", "#EFE6D6", "#DCEAF0", "#E5DCEF"];
 
 /** Deterministic-ish tint rotation so avatar colors stay stable as a group grows. */

@@ -30,12 +30,20 @@ function sign(payload: string): string {
 
 export type SessionPayload = {
   uid: string;
+  // Which User.tokenVersion this token was issued under. Optional on the
+  // wire (and in the type) because tokens signed before this field existed
+  // have no tv at all - verifySessionToken treats that as 0, matching
+  // every User row's default, so a pre-existing login isn't invalidated by
+  // this field being added. getCurrentUser() is what actually compares it
+  // against the user's current tokenVersion (see src/lib/auth.ts).
+  tv?: number;
   exp: number;
 };
 
-export function createSessionToken(uid: string): string {
+export function createSessionToken(uid: string, tokenVersion: number): string {
   const payload: SessionPayload = {
     uid,
+    tv: tokenVersion,
     exp: Math.floor(Date.now() / 1000) + MAX_AGE_SECONDS,
   };
   const encodedPayload = base64url(JSON.stringify(payload));
@@ -65,6 +73,7 @@ export function verifySessionToken(token: string | undefined | null): SessionPay
   try {
     const payload = JSON.parse(base64urlDecode(encodedPayload).toString("utf8")) as SessionPayload;
     if (typeof payload.uid !== "string" || typeof payload.exp !== "number") return null;
+    if (payload.tv !== undefined && typeof payload.tv !== "number") return null;
     if (payload.exp < Math.floor(Date.now() / 1000)) return null;
     return payload;
   } catch {

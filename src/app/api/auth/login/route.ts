@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) return genericError();
 
-  await setSessionCookie(user.id);
+  await setSessionCookie(user.id, user.tokenVersion);
 
   return NextResponse.json({ user: { id: user.id, name: user.name, email: user.email } });
 }
