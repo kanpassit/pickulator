@@ -14,9 +14,30 @@ const dmSans = DM_Sans({
   weight: ["400", "500", "600", "700"],
 });
 
+const APP_URL = "https://pickulator.com";
+const APP_DESCRIPTION = "The AI-powered way your group decides where to eat.";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(APP_URL),
   title: "Pickulator",
-  description: "The AI-powered way your group decides where to eat.",
+  description: APP_DESCRIPTION,
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
+  },
+  openGraph: {
+    title: "Pickulator",
+    description: APP_DESCRIPTION,
+    url: APP_URL,
+    siteName: "Pickulator",
+    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Pickulator",
+    description: APP_DESCRIPTION,
+    images: ["/og-image.png"],
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
