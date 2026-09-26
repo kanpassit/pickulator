@@ -48,7 +48,7 @@ function GroupJoinContent({ token, data }: { token: string; data: GroupJoinData 
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
-  const [joinedAs, setJoinedAs] = useState<{ displayName: string; initial: string; tintColor: string } | null>(null);
+  const [joinedAs, setJoinedAs] = useState<{ displayName: string; initial: string; tintColor: string; linked: boolean } | null>(null);
 
   async function claim(body: { memberId?: string; name?: string }, busyKey: string) {
     setBusyId(busyKey);
@@ -78,6 +78,7 @@ function GroupJoinContent({ token, data }: { token: string; data: GroupJoinData 
           displayName: claimed.member.displayName,
           initial: claimed.member.initial,
           tintColor: claimed.member.tintColor,
+          linked: Boolean(claimed.linked),
         });
       }
     } finally {
@@ -96,7 +97,10 @@ function GroupJoinContent({ token, data }: { token: string; data: GroupJoinData 
         </div>
         <div className="font-serif text-2xl font-bold">You&apos;re in, {joinedAs.displayName}!</div>
         <div className="text-[15px] leading-[1.45] text-muted max-w-[280px]">
-          No round is open in {data.group.name} yet. Come back to this link once one starts and we&apos;ll have something for you to vote on.
+          No round is open in {data.group.name} yet.{" "}
+          {joinedAs.linked
+            ? "It's now in your account, so you'll see it on your home screen as soon as one starts."
+            : "Come back to this link once one starts and we'll have something for you to vote on."}
         </div>
       </div>
     );
