@@ -2,6 +2,22 @@ import Anthropic from "@anthropic-ai/sdk";
 
 const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
 
+// The prompt below is written generically ("restaurant") because that's
+// what most rounds are, but a Coffee or Drinks round isn't looking for a
+// restaurant at all - these keep the prompt honest about what kind of
+// place and activity actually fits the occasion.
+function venueNoun(occasionType: string): string {
+  if (occasionType === "COFFEE") return "coffee shop, café, or similar spot";
+  if (occasionType === "DRINKS") return "bar";
+  return "restaurant";
+}
+
+function activityPhrase(occasionType: string): string {
+  if (occasionType === "COFFEE") return "where to grab coffee";
+  if (occasionType === "DRINKS") return "where to grab drinks";
+  return "where to eat";
+}
+
 export type RankedTally = {
   pick: string;
   label: string;
@@ -44,16 +60,16 @@ export type AiPickResult = {
 const PROPOSE_PICK_TOOL = {
   name: "propose_pick",
   description:
-    "Report the final restaurant recommendation for the group. Only call this once you have verified via web search that the restaurant is real and currently operating.",
+    "Report the final recommendation for the group. Only call this once you have verified via web search that the place is real and currently operating.",
   input_schema: {
     type: "object" as const,
     properties: {
-      name: { type: "string", description: "The restaurant's real name, exactly as found via search" },
+      name: { type: "string", description: "The place's real name, exactly as found via search" },
       address: { type: "string", description: "Street address as found via search" },
       priceRange: { type: "string", description: "e.g. $, $$, $$$ - empty string if unknown" },
       cuisine: { type: "string" },
       why: { type: "string", description: "2-4 sentences tying the pick to the group's answers below" },
-      sourceUrl: { type: "string", description: "A URL from the search results confirming this restaurant exists" },
+      sourceUrl: { type: "string", description: "A URL from the search results confirming this place exists" },
       rating: {
         type: "number",
         description: "Google/Yelp star rating out of 5 if you found one in your search results (e.g. 4.3), omit entirely if you didn't see one - never estimate or guess a number",
@@ -98,7 +114,9 @@ export async function getAiRestaurantPick(input: AiPickInput): Promise<AiPickRes
     )
     .join("\n");
 
-  const userMessage = `A group of friends is deciding where to eat. Recommend ONE real, currently-operating restaurant near "${input.location}", using web search to verify it actually exists before you recommend it.
+  const venue = venueNoun(input.occasionType);
+
+  const userMessage = `A group of friends is deciding ${activityPhrase(input.occasionType)} together. Recommend ONE real, currently-operating ${venue} near "${input.location}", using web search to verify it actually exists before you recommend it.
 ${
   input.maxDistance && input.maxDistance !== "No limit"
     ? `The group only wants to travel within ${input.maxDistance} of "${input.location}" - do not recommend anywhere farther than that.\n`
@@ -109,7 +127,7 @@ Occasion: ${input.occasionType} on ${input.day}, around ${input.timeSlot}.
 Cuisine preferences (weighted by everyone's ranked top-3 picks; higher score = stronger group preference):
 ${rankedSummary || "- no picks submitted"}
 
-Hard dealbreakers (never recommend a restaurant whose main cuisine is one of these): ${
+Hard dealbreakers (never recommend a place whose main category is one of these): ${
     input.dealbreakerLabels.length ? input.dealbreakerLabels.join(", ") : "none"
   }
 Budget notes from the group: ${input.budgets.length ? input.budgets.join(", ") : "none given"}
@@ -119,7 +137,7 @@ ${
     ? `\nThe group wants somewhere NEW this time. They've already been to these places recently - do NOT recommend any of them again, as a top pick or as a backup: ${input.avoidNames.join(", ")}.\n`
     : ""
 }
-Search the web to find a real restaurant near that location matching the group's top cuisine preference (or their next-best preference if you can't verify a place for the top one). You MUST verify with a search result that it exists and is currently open for business before recommending it - never invent a restaurant, address, or URL. Prefer a well-reviewed option (roughly 3.5 stars and up on Google or Yelp) among places that otherwise fit; only fall back to something lower-rated if nothing meeting the other criteria has a decent rating. If your search results show a star rating and review count, include them - but never estimate, guess, or make one up if you didn't actually see it. Then find up to 2 real backup alternatives you also verified. When you're done, call propose_pick with your final answer - don't just describe it in plain text.`;
+Search the web to find a real ${venue} near that location matching the group's top preference (or their next-best preference if you can't verify a place for the top one). You MUST verify with a search result that it exists and is currently open for business before recommending it - never invent a place, address, or URL. Prefer a well-reviewed option (roughly 3.5 stars and up on Google or Yelp) among places that otherwise fit; only fall back to something lower-rated if nothing meeting the other criteria has a decent rating. If your search results show a star rating and review count, include them - but never estimate, guess, or make one up if you didn't actually see it. Then find up to 2 real backup alternatives you also verified. When you're done, call propose_pick with your final answer - don't just describe it in plain text.`;
 
   const tools = [
     { type: "web_search_20250305", name: "web_search", max_uses: 4 },

@@ -25,6 +25,22 @@ const LABELS: Record<string, string> = {
   poke: "Poke",
   dimsum: "Dim Sum",
   ethiopian: "Ethiopian",
+  // Coffee-round options
+  coffeeshop: "Coffee Shop",
+  boba: "Boba / Bubble Tea",
+  bakery: "Bakery",
+  dessert: "Dessert",
+  teahouse: "Tea House",
+  juicebar: "Juice / Smoothie",
+  donuts: "Donuts",
+  // Drinks-round options
+  cocktailbar: "Cocktail Bar",
+  brewery: "Brewery",
+  winebar: "Wine Bar",
+  divebar: "Dive Bar",
+  rooftop: "Rooftop / Lounge",
+  sportsbar: "Sports Bar",
+  speakeasy: "Speakeasy",
 };
 
 export function cuisineLabel(id: string): string {

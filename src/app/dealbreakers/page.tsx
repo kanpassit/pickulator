@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { QuestionProgress } from "../_components/QuestionProgress";
-import { SETS } from "@/lib/cuisineOptions";
+import { setsFor } from "@/lib/cuisineOptions";
 
 type CustomOption = { id: string; label: string; hint: string | null };
 
@@ -21,6 +21,7 @@ function DealbreakersContent() {
     return raw ? raw.split(",").filter(Boolean) : [];
   });
   const [customOptions, setCustomOptions] = useState<CustomOption[]>([]);
+  const [occasionType, setOccasionType] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,12 +31,13 @@ function DealbreakersContent() {
       .then((res) => res.json())
       .then((body) => {
         if (Array.isArray(body.customOptions)) setCustomOptions(body.customOptions);
+        if (body.occasion?.type) setOccasionType(body.occasion.type);
       })
       .catch(() => {});
   }, [occasionId]);
 
   const allOptions = [
-    ...SETS.flat().filter((o) => o.id !== "surprise"),
+    ...setsFor(occasionType).flat().filter((o) => o.id !== "surprise"),
     ...customOptions.map((o) => ({ id: o.id, name: o.label, hint: o.hint ?? "", dot: "var(--tint-tan)" })),
   ];
 
