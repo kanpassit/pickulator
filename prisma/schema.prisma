@@ -43,6 +43,11 @@ enum MemberRole {
   MEMBER
 }
 
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+}
+
 enum TravelMode {
   DRIVE
   TRANSIT
@@ -78,6 +83,9 @@ model User {
   hostedGroups       Group[]        @relation("GroupHost")
   notifications      Notification[]
   pendingMemberLinks GroupMember[]  @relation("PendingMemberLink")
+
+  friendshipsSent     Friendship[] @relation("FriendshipRequester")
+  friendshipsReceived Friendship[] @relation("FriendshipAddressee")
 }
 
 model Group {
@@ -272,6 +280,38 @@ model Notification {
 
   @@index([userId])
   @@index([userId, read])
+}
+
+// A standalone social graph between registered accounts, independent of
+// any shared group - lets a host quickly add someone to a *new* group
+// without retyping their email, and lets people connect before they've
+// ever shared a round. Deliberately User-to-User only: a guest who has
+// never made an account has no User row in this app (see GroupMember's
+// comment), so there's no passwordless "contact" path here the way a
+// group invite works - a guest is only ever reachable within the group(s)
+// they're already in, and GroupMember.pendingLinkUserId already covers
+// turning a known guest into a real connection once they sign up.
+//
+// Stored as one directional row (requester -> addressee) rather than one
+// undirected row per pair, so status can live on the row itself: PENDING
+// until the addressee accepts, ACCEPTED once they do. Sending a request
+// to someone who already has a PENDING request in to you resolves both
+// sides at once instead of leaving two rows (see POST /api/friends).
+model Friendship {
+  id String @id @default(cuid())
+
+  requesterId String
+  requester   User   @relation("FriendshipRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+
+  addresseeId String
+  addressee   User   @relation("FriendshipAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  status      FriendshipStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+  respondedAt DateTime?
+
+  @@unique([requesterId, addresseeId])
+  @@index([addresseeId, status])
 }
 
 // Sliding-window-ish request counter for basic abuse throttling (login,
