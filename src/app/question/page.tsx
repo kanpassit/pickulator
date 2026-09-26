@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { QuestionProgress } from "../_components/QuestionProgress";
-import { SETS, ALL, type Option } from "@/lib/cuisineOptions";
+import { setsFor, ALL, type Option } from "@/lib/cuisineOptions";
 
 type CustomOption = { id: string; label: string; hint: string | null; createdByMemberId: string };
 
@@ -19,6 +19,7 @@ function QuestionContent() {
   });
   const [set, setSet] = useState(0);
   const [label, setLabel] = useState("New round");
+  const [occasionType, setOccasionType] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [isRegistered, setIsRegistered] = useState(false);
@@ -40,6 +41,7 @@ function QuestionContent() {
       .then((body) => {
         if (body.group && body.occasion) {
           setLabel(`${body.group.name} · ${body.occasion.type[0]}${body.occasion.type.slice(1).toLowerCase()}`);
+          setOccasionType(body.occasion.type);
         }
         if (Array.isArray(body.customOptions)) setCustomOptions(body.customOptions);
         if (Array.isArray(body.members)) {
@@ -56,7 +58,8 @@ function QuestionContent() {
   }, [occasionId, token]);
 
   const full = picks.length >= 3;
-  const opts = SETS[set % SETS.length];
+  const sets = setsFor(occasionType);
+  const opts = sets[set % sets.length];
 
   const customById: Record<string, Option> = Object.fromEntries(
     customOptions.map((o) => [o.id, { id: o.id, name: o.label, hint: o.hint ?? "Added by your group", dot: "var(--tint-tan)" }])
@@ -193,7 +196,7 @@ function QuestionContent() {
 
       <button
         type="button"
-        onClick={() => setSet((s) => (s + 1) % SETS.length)}
+        onClick={() => setSet((s) => (s + 1) % sets.length)}
         className="-mt-2 h-[52px] rounded-[14px] border-none flex items-center justify-center gap-2 text-base font-semibold"
         style={{ background: "var(--tint-tan)" }}
       >
