@@ -3,10 +3,17 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { cuisineLabel } from "@/lib/cuisineLabels";
 import { getAiRestaurantPick } from "@/lib/aiPick";
+import { rateLimited } from "@/lib/rateLimit";
 
 // Web search + tool-use round trips can run past the platform's default
 // function timeout, so give this route real headroom.
 export const maxDuration = 60;
+
+// Each call is a real Claude + web-search round trip, so bound how many a
+// single host can trigger in a day - no tiers/billing exist yet, this is
+// just a cost backstop. Reuses the same rate-limit table/helper as the
+// auth routes; windowMs of one day buckets by UTC calendar day.
+const AI_PICK_DAILY_LIMIT = 10;
 
 const RANK_WEIGHTS = [3, 2, 1]; // 1st, 2nd, 3rd pick
 
@@ -123,65 +130,74 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   }));
 
   if (occasion.location) {
-    try {
-      let avoidNames: string[] = [];
-      if (occasion.avoidRepeats) {
-        const [pastResults, elsewhereFeedback] = await Promise.all([
-          prisma.result.findMany({
-            where: { occasion: { groupId: occasion.groupId, status: "CLOSED", NOT: { id: occasion.id } } },
-            select: { chosenName: true },
-          }),
-          prisma.feedback.findMany({
-            where: { occasion: { groupId: occasion.groupId }, choice: "ELSEWHERE", notes: { not: null } },
-            select: { notes: true },
-          }),
-        ]);
-        avoidNames = Array.from(
-          new Set(
-            [...pastResults.map((r) => r.chosenName), ...elsewhereFeedback.map((f) => f.notes ?? "")]
-              .map((n) => n.trim())
-              .filter(Boolean)
-          )
-        );
-      }
+    const overQuota = await rateLimited("ai-pick", user.id, {
+      max: AI_PICK_DAILY_LIMIT,
+      windowMs: 24 * 60 * 60_000,
+    });
 
-      const aiPick = await getAiRestaurantPick({
-        location: occasion.location,
-        maxDistance: occasion.maxDistance,
-        occasionType: occasion.type,
-        day: occasion.day,
-        timeSlot: occasion.timeSlot,
-        rankedTallies: ranked.slice(0, 5).map((r) => ({
-          pick: r.pick,
-          label: labelFor(r.pick),
-          score: r.score,
-          breadth: r.breadth,
-          firstPlaceVotes: r.firstPlaceVotes,
-        })),
-        dealbreakerLabels: Array.from(dealbreakers).map(labelFor),
-        budgets: occasion.answers.map((a) => a.budget).filter((b): b is string => Boolean(b)),
-        vibes: occasion.answers.map((a) => a.vibe).filter((v): v is string => Boolean(v)),
-        avoidNames,
-      });
+    if (overQuota) {
+      console.warn(`AI pick daily quota reached for host ${user.id}, falling back to heuristic result`);
+    } else {
+      try {
+        let avoidNames: string[] = [];
+        if (occasion.avoidRepeats) {
+          const [pastResults, elsewhereFeedback] = await Promise.all([
+            prisma.result.findMany({
+              where: { occasion: { groupId: occasion.groupId, status: "CLOSED", NOT: { id: occasion.id } } },
+              select: { chosenName: true },
+            }),
+            prisma.feedback.findMany({
+              where: { occasion: { groupId: occasion.groupId }, choice: "ELSEWHERE", notes: { not: null } },
+              select: { notes: true },
+            }),
+          ]);
+          avoidNames = Array.from(
+            new Set(
+              [...pastResults.map((r) => r.chosenName), ...elsewhereFeedback.map((f) => f.notes ?? "")]
+                .map((n) => n.trim())
+                .filter(Boolean)
+            )
+          );
+        }
 
-      if (aiPick) {
-        chosenName = aiPick.name;
-        chosenMeta = {
-          source: "claude",
-          address: aiPick.address,
-          priceRange: aiPick.priceRange,
-          cuisine: aiPick.cuisine,
-          why: aiPick.why,
-          sourceUrl: aiPick.sourceUrl,
-          rating: aiPick.rating,
-          reviewCount: aiPick.reviewCount,
-          heuristicPick: labelFor(winner.pick),
-          totalAnswers,
-        };
-        alsoConsidered = aiPick.alsoConsidered;
+        const aiPick = await getAiRestaurantPick({
+          location: occasion.location,
+          maxDistance: occasion.maxDistance,
+          occasionType: occasion.type,
+          day: occasion.day,
+          timeSlot: occasion.timeSlot,
+          rankedTallies: ranked.slice(0, 5).map((r) => ({
+            pick: r.pick,
+            label: labelFor(r.pick),
+            score: r.score,
+            breadth: r.breadth,
+            firstPlaceVotes: r.firstPlaceVotes,
+          })),
+          dealbreakerLabels: Array.from(dealbreakers).map(labelFor),
+          budgets: occasion.answers.map((a) => a.budget).filter((b): b is string => Boolean(b)),
+          vibes: occasion.answers.map((a) => a.vibe).filter((v): v is string => Boolean(v)),
+          avoidNames,
+        });
+
+        if (aiPick) {
+          chosenName = aiPick.name;
+          chosenMeta = {
+            source: "claude",
+            address: aiPick.address,
+            priceRange: aiPick.priceRange,
+            cuisine: aiPick.cuisine,
+            why: aiPick.why,
+            sourceUrl: aiPick.sourceUrl,
+            rating: aiPick.rating,
+            reviewCount: aiPick.reviewCount,
+            heuristicPick: labelFor(winner.pick),
+            totalAnswers,
+          };
+          alsoConsidered = aiPick.alsoConsidered;
+        }
+      } catch (err) {
+        console.error("AI restaurant pick failed, falling back to heuristic result", err);
       }
-    } catch (err) {
-      console.error("AI restaurant pick failed, falling back to heuristic result", err);
     }
   }
 
