@@ -178,7 +178,7 @@ All under `src/app/api/`. Every route that reads/writes an occasion, answer, or 
 - **Notifications** (`src/lib/notify.ts`) — `notifyBestEffort()` never throws and only ever notifies registered users (a guest has nothing to log into to see a notification); it also never notifies the actor about their own action.
 - **Email** (`src/lib/mail.ts`) — a single `sendEmail()` calling the Resend REST API directly (`https://api.resend.com/emails`), no npm package. Distinguishes "not configured" (no `RESEND_API_KEY` — logs that a send was skipped, but deliberately **never** logs the actual reset URL/token) from "send failed" (Resend rejected/errored). Currently used only for password-reset emails, sent from `no-reply@pickulator.com`.
 - **Tokens** (`src/lib/tokens.ts`) — `generateLinkToken()` (9 random bytes, for `GroupMember.linkToken`), `generateResetToken()` (32 random bytes, for `ResetToken` — much higher entropy since it grants account takeover if leaked), plus the tint/initial generator for guest avatars (`TINTS`, a 6-color rotation).
-- **Analytics** — GA4 property "Pickulator Web" (`G-4FD4X607Z7`, under the KatchingStacks Analytics account; kept its measurement ID from when the app was named "KanPassIt", which doesn't change on a rename). Loaded via two `next/script` tags in `src/app/layout.tsx`; `GoogleAnalyticsPageView.tsx` fires a pageview on every client-side route change since `gtag.js` only sees the first full page load automatically.
+- **Analytics** — GA4 property "Pickulator" (`G-2NEWHK9ZZS`, its own property under the KatchingStacks Analytics account, separate from "KanPassIt", which now tracks kanpassit.com on its own stream/ID). Loaded via two `next/script` tags in `src/app/layout.tsx`; `GoogleAnalyticsPageView.tsx` fires a pageview on every client-side route change since `gtag.js` only sees the first full page load automatically.
 - **Social link previews** — `generateMetadata` in `src/app/j/[token]/page.tsx` personalizes the Open Graph/Twitter card for an invite link (shows the actual group name, e.g. "The Regulars wants your vote"), falling back to the generic site card if the token doesn't resolve. Metadata for a given page segment doesn't deep-merge with the root layout's, so the image/card fields are repeated there rather than inherited.
 
 ## Environment variables
@@ -201,7 +201,7 @@ Optional (the app degrades gracefully without them — see the relevant section 
 
 `NODE_ENV` is set automatically by Next.js/Vercel and never needs to be configured by hand.
 
-The GA4 measurement id (`G-4FD4X607Z7`) is hardcoded in `src/app/layout.tsx`, not an env var — measurement ids are meant to be public since they're embedded client-side in every pageview.
+The GA4 measurement id (`G-2NEWHK9ZZS`) is hardcoded in `src/app/layout.tsx`, not an env var — measurement ids are meant to be public since they're embedded client-side in every pageview.
 
 ## Local development
 

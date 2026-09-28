@@ -20,12 +20,11 @@ const dmSans = DM_Sans({
 const APP_URL = "https://pickulator.com";
 const APP_DESCRIPTION = "The AI-powered way your group decides where to eat.";
 
-// GA4 property "Pickulator Web" under the KatchingStacks Analytics account
-// (kept its stream ID from when the app was still called "KanPassIt" - the
-// stream's site URL was updated to pickulator.com, the measurement ID
-// itself doesn't change on a rename). Not a secret: measurement IDs are
+// GA4 property "Pickulator" (its own property under the KatchingStacks
+// Analytics account, separate from "KanPassIt", which now tracks
+// kanpassit.com on its own stream). Not a secret: measurement IDs are
 // meant to be public, they're embedded client-side in every pageview.
-const GA_MEASUREMENT_ID = "G-4FD4X607Z7";
+const GA_MEASUREMENT_ID = "G-2NEWHK9ZZS";
 
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
