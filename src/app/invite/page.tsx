@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { canNativeShare, shareOrCopy } from "@/lib/share";
 
 type Member = {
   id: string;
@@ -77,6 +78,19 @@ function InviteContent() {
       setTimeout(() => setCopied((c) => (c === id ? null : c)), 2000);
     } catch {
       // clipboard may be unavailable; the link is still shown on screen
+    }
+  }
+
+  async function share() {
+    if (!groupId) return;
+    const outcome = await shareOrCopy({
+      title: `Join ${groupName || "our group"} on Pickulator`,
+      text: `Help us pick where to eat${groupName ? ` - ${groupName}` : ""}. Open the link and answer in about a minute.`,
+      url: `${window.location.origin}/j/${groupId}`,
+    });
+    if (outcome === "copied") {
+      setCopied("group");
+      setTimeout(() => setCopied((c) => (c === "group" ? null : c)), 2000);
     }
   }
 
@@ -161,6 +175,15 @@ function InviteContent() {
             {copied === "group" ? "Copied" : "Copy link"}
           </button>
         </div>
+        {canNativeShare() && (
+          <button
+            type="button"
+            onClick={share}
+            className="h-12 rounded-full border-2 border-primary bg-white text-primary text-[15px] font-bold"
+          >
+            Send to the group chat
+          </button>
+        )}
       </div>
 
       <div className="bg-white border border-border rounded-[20px] px-4 flex flex-col">

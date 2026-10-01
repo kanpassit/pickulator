@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, DM_Sans } from "next/font/google";
-import Script from "next/script";
 import { Suspense } from "react";
+import { AnalyticsConsent } from "./_components/AnalyticsConsent";
 import { GoogleAnalyticsPageView } from "./_components/GoogleAnalyticsPageView";
 import "./globals.css";
 
@@ -54,18 +54,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en" className={`${fraunces.variable} ${dmSans.variable} h-full`}>
       <body className="min-h-full flex flex-col antialiased">
         {children}
-        <Script
-          src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
-          strategy="afterInteractive"
-        />
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', '${GA_MEASUREMENT_ID}');
-          `}
-        </Script>
+        <AnalyticsConsent gaId={GA_MEASUREMENT_ID} />
         <Suspense fallback={null}>
           <GoogleAnalyticsPageView gaId={GA_MEASUREMENT_ID} />
         </Suspense>

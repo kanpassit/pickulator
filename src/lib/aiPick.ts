@@ -36,7 +36,14 @@ export type AiPickInput = {
   dealbreakerLabels: string[];
   budgets: string[];
   vibes: string[];
+  // Places the group has been to recently (only when the round has
+  // "avoid repeats" on) - soft "we want somewhere new" signal.
   avoidNames: string[];
+  // Places someone in the group rated "Not again" after a past round.
+  // Always excluded, whether or not "avoid repeats" is on.
+  dislikedNames: string[];
+  // Picks the host already turned down for THIS round (reroll).
+  rejectedNames: string[];
 };
 
 export type AiPickCandidate = {
@@ -136,6 +143,14 @@ ${
   input.avoidNames.length
     ? `\nThe group wants somewhere NEW this time. They've already been to these places recently - do NOT recommend any of them again, as a top pick or as a backup: ${input.avoidNames.join(", ")}.\n`
     : ""
+}${
+  input.dislikedNames.length
+    ? `\nSomeone in this group rated these places "Not again" after going - never recommend them, as a top pick or as a backup: ${input.dislikedNames.join(", ")}.\n`
+    : ""
+}${
+  input.rejectedNames.length
+    ? `\nThe host already turned down these suggestions for this round - recommend something clearly different, and never one of these, as a top pick or as a backup: ${input.rejectedNames.join(", ")}.\n`
+    : ""
 }
 Search the web to find a real ${venue} near that location matching the group's top preference (or their next-best preference if you can't verify a place for the top one). You MUST verify with a search result that it exists and is currently open for business before recommending it - never invent a place, address, or URL. Prefer a well-reviewed option (roughly 3.5 stars and up on Google or Yelp) among places that otherwise fit; only fall back to something lower-rated if nothing meeting the other criteria has a decent rating. If your search results show a star rating and review count, include them - but never estimate, guess, or make one up if you didn't actually see it. Then find up to 2 real backup alternatives you also verified. When you're done, call propose_pick with your final answer - don't just describe it in plain text.`;
 
@@ -174,6 +189,74 @@ Search the web to find a real ${venue} near that location matching the group's t
 
   if (!proposal) return null;
 
+  // The prompt asks the model to skip excluded places, but the exclusion
+  // is a hard rule (e.g. "Not again" ratings), so verify it instead of
+  // trusting the model, and give it one corrective turn before giving up.
+  const excluded = [...input.avoidNames, ...input.dislikedNames, ...input.rejectedNames];
+  let result = parseProposal(proposal);
+
+  if (result && excluded.length > 0 && isExcluded(result, excluded)) {
+    const toolUseId = findProposeToolUseId(response);
+    messages.push({ role: "assistant", content: response.content });
+    messages.push({
+      role: "user",
+      content: [
+        ...(toolUseId
+          ? [
+              {
+                type: "tool_result" as const,
+                tool_use_id: toolUseId,
+                is_error: true,
+                content: `Rejected: "${result.name}" (or one of your backups) is on the excluded list (${excluded.join(
+                  ", "
+                )}). Pick a different, verified place.`,
+              },
+            ]
+          : []),
+        {
+          type: "text" as const,
+          text: `That recommendation includes a place the group ruled out (${excluded.join(
+            ", "
+          )}). Call propose_pick again with a different verified place, and make sure none of the backups are on that list either.`,
+        },
+      ],
+    });
+    response = await client.messages.create({
+      model: MODEL,
+      max_tokens: 1024,
+      tools: tools as never,
+      tool_choice: { type: "tool", name: "propose_pick" },
+      messages,
+    });
+    const retryProposal = extractProposal(response);
+    result = retryProposal ? parseProposal(retryProposal) : null;
+    // Still on the list: no pick beats a pick the group said no to.
+    if (result && isExcluded(result, excluded)) return null;
+  }
+
+  return result;
+}
+
+function normalizeName(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function sameVenue(a: string, b: string): boolean {
+  const x = normalizeName(a);
+  const y = normalizeName(b);
+  if (!x || !y) return false;
+  if (x === y) return true;
+  // "Ramen-Desu" vs "Ramen-Desu San Diego": one name contains the other.
+  const [short, long] = x.length <= y.length ? [x, y] : [y, x];
+  return short.length >= 5 && long.includes(short);
+}
+
+function isExcluded(result: AiPickResult, excluded: string[]): boolean {
+  const names = [result.name, ...result.alsoConsidered.map((c) => c.name)].filter(Boolean);
+  return names.some((n) => excluded.some((e) => sameVenue(n, e)));
+}
+
+function parseProposal(proposal: Record<string, unknown>): AiPickResult | null {
   const name = String(proposal.name ?? "").trim();
   const address = String(proposal.address ?? "").trim();
   const cuisine = String(proposal.cuisine ?? "").trim();
@@ -206,6 +289,13 @@ Search the web to find a real ${venue} near that location matching the group's t
         })
       : [],
   };
+}
+
+function findProposeToolUseId(response: Anthropic.Message): string | null {
+  const block = response.content.find(
+    (b) => b.type === "tool_use" && (b as { name?: string }).name === "propose_pick"
+  ) as { id?: string } | undefined;
+  return block?.id ?? null;
 }
 
 function extractProposal(response: Anthropic.Message): Record<string, unknown> | null {

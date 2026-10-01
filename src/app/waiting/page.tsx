@@ -2,6 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { canNativeShare, shareOrCopy } from "@/lib/share";
 
 type Member = { id: string; displayName: string; initial: string; tintColor: string; answered: boolean };
 type OccData = {
@@ -22,6 +23,7 @@ function WaitingContent() {
   const [meId, setMeId] = useState<string | null>(null);
   const [closing, setClosing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [shareNote, setShareNote] = useState<string | null>(null);
 
   const load = useCallback(() => {
     if (!occasionId) return;
@@ -71,6 +73,19 @@ function WaitingContent() {
     }
   }
 
+  async function nudge() {
+    if (!data) return;
+    const outcome = await shareOrCopy({
+      title: `${data.group.name} on Pickulator`,
+      text: `We're picking where to eat - ${data.group.name} is waiting on your answers. Takes about a minute.`,
+      url: `${window.location.origin}/j/${data.group.id}`,
+    });
+    if (outcome === "copied") {
+      setShareNote("Invite link copied");
+      setTimeout(() => setShareNote(null), 2000);
+    }
+  }
+
   if (!data) {
     return <div className="w-full flex-1 flex items-center justify-center text-muted">Loading…</div>;
   }
@@ -117,6 +132,15 @@ function WaitingContent() {
       {isHost && (
         <div className="flex flex-col gap-3">
           {error && <div className="text-sm text-primary text-center">{error}</div>}
+          {data.answeredCount < data.totalMembers && (
+            <button
+              type="button"
+              onClick={nudge}
+              className="h-12 rounded-[14px] border-2 border-primary bg-white text-primary flex items-center justify-center text-[15px] font-semibold"
+            >
+              {shareNote ?? (canNativeShare() ? "Nudge the group" : "Copy invite link")}
+            </button>
+          )}
           <button
             type="button"
             onClick={closeRound}

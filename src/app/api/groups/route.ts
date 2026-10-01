@@ -59,30 +59,45 @@ export async function GET() {
       })
     : [];
 
-  const myMemberIds = [...myMemberIdByGroup.values()].filter((id): id is string => Boolean(id));
-  const myAnswers =
-    openOccasions.length && myMemberIds.length
-      ? await prisma.answer.findMany({
-          where: { occasionId: { in: openOccasions.map((o) => o.id) }, memberId: { in: myMemberIds } },
-          select: { occasionId: true, memberId: true },
-        })
-      : [];
-  const answeredSet = new Set(myAnswers.map((a) => `${a.occasionId}:${a.memberId}`));
+  // One query for every answer on every open round: enough to tell both
+  // whether *I* have answered and how many/which people still haven't.
+  // (Who has answered isn't secret - the waiting screen already shows it -
+  // only what they answered is hidden.)
+  const allAnswers = openOccasions.length
+    ? await prisma.answer.findMany({
+        where: { occasionId: { in: openOccasions.map((o) => o.id) } },
+        select: { occasionId: true, memberId: true },
+      })
+    : [];
+  const answeredByOccasion = new Map<string, Set<string>>();
+  for (const a of allAnswers) {
+    const set = answeredByOccasion.get(a.occasionId) ?? new Set<string>();
+    set.add(a.memberId);
+    answeredByOccasion.set(a.occasionId, set);
+  }
 
-  const groupNameById = new Map(groups.map((g) => [g.id, g.name]));
+  const groupById = new Map(groups.map((g) => [g.id, g]));
   const hostIdByGroup = new Map(groups.map((g) => [g.id, g.hostUserId]));
 
   const openRounds = openOccasions.map((o) => {
+    const group = groupById.get(o.groupId);
     const myMemberId = myMemberIdByGroup.get(o.groupId) ?? null;
+    const answered = answeredByOccasion.get(o.id) ?? new Set<string>();
+    const members = group?.members ?? [];
     return {
       occasionId: o.id,
       groupId: o.groupId,
-      groupName: groupNameById.get(o.groupId) ?? "",
+      groupName: group?.name ?? "",
       type: o.type,
       day: o.day,
       timeSlot: o.timeSlot,
+      createdAt: o.createdAt.toISOString(),
       isHost: hostIdByGroup.get(o.groupId) === user.id,
-      hasAnswered: myMemberId ? answeredSet.has(`${o.id}:${myMemberId}`) : false,
+      hasAnswered: myMemberId ? answered.has(myMemberId) : false,
+      answeredCount: members.filter((m) => answered.has(m.id)).length,
+      totalMembers: members.length,
+      // Display names only, in join order, for "Waiting on Sam, Alex".
+      waitingOn: members.filter((m) => !answered.has(m.id) && m.id !== myMemberId).map((m) => m.displayName),
     };
   });
 
