@@ -98,7 +98,7 @@ export default function AccountPage() {
   return (
     <div className="relative overflow-hidden w-full flex-1 flex flex-col">
       <div className="shrink-0 h-16 px-6 flex items-center justify-between border-b border-border bg-background">
-        <div className="font-serif text-xl font-bold">Account</div>
+        <h1 className="m-0 font-serif text-xl font-bold">Account</h1>
         <NotificationBell />
       </div>
 

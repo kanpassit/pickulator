@@ -202,7 +202,7 @@ export default function HomeClient({ user }: { user: NonNullable<Me> }) {
       <div className="shrink-0 h-16 px-3 pl-6 flex items-center justify-between border-b border-border bg-background">
         <div className="flex items-center gap-2">
           <Logo className="w-7 h-7" />
-          <div className="font-serif text-xl font-bold">Pickulator</div>
+          <h1 className="m-0 font-serif text-xl font-bold">Pickulator</h1>
         </div>
         <div className="flex items-center gap-1">
           <NotificationBell />
