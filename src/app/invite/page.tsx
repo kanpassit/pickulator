@@ -159,7 +159,7 @@ function InviteContent() {
         </div>
       </div>
 
-      {error && <div className="text-sm text-primary">{error}</div>}
+      {error && <div role="alert" className="text-sm text-primary">{error}</div>}
 
       <div className="rounded-[20px] p-4 flex flex-col gap-3" style={{ background: "var(--tint-green)" }}>
         <div className="text-base font-bold" style={{ color: "var(--green-dark)" }}>Group invite link</div>
@@ -236,12 +236,13 @@ function InviteContent() {
                   <div className="flex flex-col gap-1.5">
                     <div className="flex gap-2">
                       <input
+                        aria-label="Their registered email"
                         type="email"
                         placeholder="their-registered@email.com"
                         value={linkEmailValue}
                         onChange={(e) => setLinkEmailValue(e.target.value)}
                         className="flex-grow min-w-0 box-border h-10 px-3 rounded-[10px] border text-sm"
-                        style={{ borderColor: "var(--border)" }}
+                        style={{ borderColor: "var(--input-border)" }}
                       />
                       <button
                         type="button"
@@ -265,7 +266,7 @@ function InviteContent() {
                         Cancel
                       </button>
                     </div>
-                    {linkError && <div className="text-[13px] text-primary">{linkError}</div>}
+                    {linkError && <div role="alert" className="text-[13px] text-primary">{linkError}</div>}
                   </div>
                 ) : (
                   <button
@@ -296,9 +297,10 @@ function InviteContent() {
             <button
               key={m}
               type="button"
+              aria-pressed={mode === m}
               onClick={() => setMode(m)}
               className="box-border h-12 rounded-[14px] border-2 text-[15px] font-semibold"
-              style={{ borderColor: mode === m ? "var(--primary)" : "var(--border)", background: mode === m ? "var(--tint-pink)" : "#FFFFFF" }}
+              style={{ borderColor: mode === m ? "var(--primary)" : "var(--input-border)", background: mode === m ? "var(--tint-pink)" : "#FFFFFF" }}
             >
               {m === "name" ? "Just a name" : "By email"}
             </button>
@@ -312,7 +314,7 @@ function InviteContent() {
             placeholder={mode === "email" ? "alex@example.com" : "e.g. Alex"}
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            className="box-border h-[52px] px-4 rounded-[14px] border border-[#B8AA98] bg-white text-base"
+            className="box-border h-[52px] px-4 rounded-[14px] border border-input-border bg-white text-base"
           />
           <button
             type="submit"

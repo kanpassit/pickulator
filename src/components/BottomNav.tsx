@@ -11,21 +11,23 @@ export default function BottomNav() {
   }
 
   return (
-    <div className="shrink-0 h-[76px] px-2 flex items-center justify-between border-t border-border bg-white">
+    <nav aria-label="Main" className="shrink-0 h-[76px] px-2 flex items-center justify-between border-t border-border bg-white">
       <Link
         href="/"
+        aria-current={pathname === "/" ? "page" : undefined}
         className={`flex-1 flex flex-col items-center gap-1 text-xs font-bold ${tabStyle("/")}`}
       >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M4 11l8-7 8 7v9a1 1 0 01-1 1h-4v-6H9v6H5a1 1 0 01-1-1z" />
         </svg>
         <span>Home</span>
       </Link>
       <Link
         href="/groups"
+        aria-current={pathname === "/groups" ? "page" : undefined}
         className={`flex-1 flex flex-col items-center gap-1 text-xs font-semibold ${tabStyle("/groups")}`}
       >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="9" cy="8" r="3.5" />
           <path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6" />
           <path d="M16 4.5a3.5 3.5 0 010 7M18 14.4c2 .7 3.5 2.5 3.5 5.6" />
@@ -38,16 +40,17 @@ export default function BottomNav() {
           aria-label="Start a new round"
           className="w-14 h-14 -mt-[22px] rounded-full bg-primary border-4 border-white shadow-[0_6px_16px_rgba(194,59,32,0.35)] flex items-center justify-center box-border"
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.8" strokeLinecap="round">
+          <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.8" strokeLinecap="round">
             <path d="M12 5v14M5 12h14" />
           </svg>
         </Link>
       </div>
       <Link
         href="/friends"
+        aria-current={pathname === "/friends" ? "page" : undefined}
         className={`flex-1 flex flex-col items-center gap-1 text-xs font-semibold ${tabStyle("/friends")}`}
       >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <rect x="3" y="5" width="18" height="14" rx="2.5" />
           <circle cx="9" cy="10.5" r="2" />
           <path d="M5.5 16c0-1.8 1.4-3 3.5-3s3.5 1.2 3.5 3" />
@@ -57,14 +60,15 @@ export default function BottomNav() {
       </Link>
       <Link
         href="/account"
+        aria-current={pathname === "/account" ? "page" : undefined}
         className={`flex-1 flex flex-col items-center gap-1 text-xs font-semibold ${tabStyle("/account")}`}
       >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="8" r="4" />
           <path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" />
         </svg>
         <span>Account</span>
       </Link>
-    </div>
+    </nav>
   );
 }

@@ -33,7 +33,7 @@ export function QuestionProgress({
           <div
             key={i}
             className="flex-1 h-1.5 rounded-full"
-            style={{ background: i < step ? "var(--primary)" : "var(--border)" }}
+            style={{ background: i < step ? "var(--primary)" : "var(--input-border)" }}
           />
         ))}
       </div>

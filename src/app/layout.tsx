@@ -53,7 +53,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${fraunces.variable} ${dmSans.variable} h-full`}>
       <body className="min-h-full flex flex-col antialiased">
-        {children}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:rounded-lg focus:border-2 focus:border-primary focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold"
+        >
+          Skip to main content
+        </a>
+        <main id="main-content" tabIndex={-1} className="w-full flex-1 flex flex-col focus:outline-none">
+          {children}
+        </main>
         <AnalyticsConsent gaId={GA_MEASUREMENT_ID} />
         <Suspense fallback={null}>
           <GoogleAnalyticsPageView gaId={GA_MEASUREMENT_ID} />

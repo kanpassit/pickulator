@@ -149,17 +149,18 @@ export default function GroupsPage() {
           <div className="text-[15px] text-muted">You're not in any groups yet - create one below.</div>
         )}
 
-        {error && <div className="text-sm text-primary">{error}</div>}
+        {error && <div role="alert" className="text-sm text-primary">{error}</div>}
 
         <form onSubmit={createGroup} className="flex flex-col gap-2 mt-2">
           <div className="text-sm font-semibold">New group</div>
           <div className="flex gap-2">
             <input
+              aria-label="New group name"
               type="text"
               placeholder="e.g. The Regulars"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              className="flex-grow box-border h-12 px-4 rounded-[14px] border border-[#B8AA98] bg-white text-base"
+              className="flex-grow box-border h-12 px-4 rounded-[14px] border border-input-border bg-white text-base"
             />
             <button
               type="submit"

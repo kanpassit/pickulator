@@ -49,7 +49,7 @@ const JSON_LD = {
 
 export default function Landing() {
   return (
-    <main className="w-full flex-1 box-border flex flex-col">
+    <div className="w-full flex-1 box-border flex flex-col">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
 
       <header className="h-16 px-6 flex items-center justify-between max-w-[960px] w-full mx-auto box-border">
@@ -137,10 +137,11 @@ export default function Landing() {
           <nav aria-label="Legal" className="flex gap-4">
             <Link href="/privacy">Privacy</Link>
             <Link href="/terms">Terms</Link>
+            <Link href="/accessibility">Accessibility</Link>
             <Link href="/login">Log in</Link>
           </nav>
         </div>
       </footer>
-    </main>
+    </div>
   );
 }

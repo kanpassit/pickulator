@@ -272,7 +272,7 @@ function ResultContent() {
             >
               {rerolling ? "Finding another place…" : "Not feeling it? Pick something else"}
             </button>
-            {actionError && <div className="text-sm text-primary text-center">{actionError}</div>}
+            {actionError && <div role="alert" className="text-sm text-primary text-center">{actionError}</div>}
             {rerolling && (
               <div className="text-[13px] leading-[1.4] text-muted text-center">
                 Everyone&apos;s answers still count. This can take up to a minute.

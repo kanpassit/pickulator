@@ -49,9 +49,10 @@ function VibeContent() {
             <button
               key={v.id}
               type="button"
+              aria-pressed={on}
               onClick={() => setVibe(on ? null : v.id)}
               className="box-border h-[128px] px-4 py-3.5 rounded-[20px] border-2 bg-white flex flex-col justify-between items-start text-left"
-              style={{ borderColor: on ? "var(--primary)" : "var(--border)" }}
+              style={{ borderColor: on ? "var(--primary)" : "var(--input-border)" }}
             >
               <div className="w-9 h-9 rounded-full" style={{ background: v.dot }} />
               <div className="flex flex-col gap-1">

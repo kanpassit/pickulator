@@ -181,7 +181,7 @@ function GroupJoinContent({ token, data }: { token: string; data: GroupJoinData 
               placeholder="e.g. Jordan"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              className="flex-grow min-w-0 box-border h-12 px-4 rounded-[14px] border border-[#B8AA98] bg-white text-base"
+              className="flex-grow min-w-0 box-border h-12 px-4 rounded-[14px] border border-input-border bg-white text-base"
             />
             <button
               type="button"
@@ -199,7 +199,7 @@ function GroupJoinContent({ token, data }: { token: string; data: GroupJoinData 
         </button>
       )}
 
-      {error && <div className="text-sm text-primary text-center">{error}</div>}
+      {error && <div role="alert" className="text-sm text-primary text-center">{error}</div>}
       <div className="flex-grow" />
       <div className="text-center text-sm text-muted">No account needed.</div>
     </div>
@@ -273,7 +273,7 @@ function MemberJoinContent({ token, data }: { token: string; data: MemberJoinDat
           placeholder="(619) 555-0123"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
-          className="box-border h-[52px] px-4 rounded-[14px] border border-[#B8AA98] bg-white text-base"
+          className="box-border h-[52px] px-4 rounded-[14px] border border-input-border bg-white text-base"
         />
       </div>
 

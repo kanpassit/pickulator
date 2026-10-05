@@ -125,7 +125,7 @@ export default function AccountPage() {
               setSaved(false);
               setName(e.target.value);
             }}
-            className="box-border h-12 px-4 rounded-[14px] border border-[#B8AA98] bg-white text-base"
+            className="box-border h-12 px-4 rounded-[14px] border border-input-border bg-white text-base"
           />
         </div>
 
@@ -140,10 +140,11 @@ export default function AccountPage() {
                 <button
                   key={d}
                   type="button"
+                  aria-pressed={on}
                   onClick={() => toggleDietary(d)}
                   className="h-10 px-4 rounded-full border-2 text-sm font-semibold"
                   style={{
-                    borderColor: on ? "var(--primary)" : "var(--border)",
+                    borderColor: on ? "var(--primary)" : "var(--input-border)",
                     background: on ? "var(--primary)" : "#FFFFFF",
                     color: on ? "#FFFFFF" : "var(--foreground)",
                   }}
@@ -154,6 +155,7 @@ export default function AccountPage() {
             })}
           </div>
           <input
+            aria-label="Other dietary notes (optional)"
             type="text"
             placeholder="Anything else? (optional)"
             value={dietaryNotes}
@@ -161,7 +163,7 @@ export default function AccountPage() {
               setSaved(false);
               setDietaryNotes(e.target.value);
             }}
-            className="box-border h-12 px-4 rounded-[14px] border border-[#B8AA98] bg-white text-base"
+            className="box-border h-12 px-4 rounded-[14px] border border-input-border bg-white text-base"
           />
         </div>
 
@@ -174,13 +176,14 @@ export default function AccountPage() {
                 <button
                   key={m.id}
                   type="button"
+                  aria-pressed={on}
                   onClick={() => {
                     setSaved(false);
                     setTravelMode(on ? null : m.id);
                   }}
                   className="h-10 px-4 rounded-full border-2 text-sm font-semibold"
                   style={{
-                    borderColor: on ? "var(--primary)" : "var(--border)",
+                    borderColor: on ? "var(--primary)" : "var(--input-border)",
                     background: on ? "var(--primary)" : "#FFFFFF",
                     color: on ? "#FFFFFF" : "var(--foreground)",
                   }}
@@ -192,7 +195,7 @@ export default function AccountPage() {
           </div>
         </div>
 
-        {error && <div className="text-sm text-primary">{error}</div>}
+        {error && <div role="alert" className="text-sm text-primary">{error}</div>}
         <button
           type="button"
           onClick={save}

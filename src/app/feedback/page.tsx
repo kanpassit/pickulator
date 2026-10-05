@@ -81,9 +81,10 @@ function FeedbackContent() {
           <button
             key={c.id}
             type="button"
+            aria-pressed={choice === c.id}
             onClick={() => setChoice(c.id)}
             className="box-border p-4 rounded-2xl border-2 bg-white flex items-center gap-3 text-left text-[17px] font-bold"
-            style={{ borderColor: choice === c.id ? "var(--primary)" : "var(--border)" }}
+            style={{ borderColor: choice === c.id ? "var(--primary)" : "var(--input-border)" }}
           >
             <div className="flex-grow flex flex-col gap-0.5">
               <div>{c.id === "WENT" && pickName ? pickName : c.name}</div>
@@ -106,12 +107,13 @@ function FeedbackContent() {
             <div className="flex flex-col gap-2">
               <div className="text-base font-semibold">Where did you go?</div>
               <input
+                aria-label="Where did you go?"
                 type="text"
                 placeholder="e.g. The Taco Stand"
                 value={elsewhereName}
                 onChange={(e) => setElsewhereName(e.target.value)}
                 className="box-border h-[52px] px-4 rounded-[14px] border-2 bg-white text-base"
-                style={{ borderColor: "var(--border)" }}
+                style={{ borderColor: "var(--input-border)" }}
               />
             </div>
           )}
@@ -123,9 +125,10 @@ function FeedbackContent() {
                 <button
                   key={r.id}
                   type="button"
+                  aria-pressed={on}
                   onClick={() => setRating(r.id)}
                   className="box-border h-14 rounded-[14px] border-2 text-[15px] font-semibold"
-                  style={{ borderColor: on ? "var(--primary)" : "var(--border)", background: on ? r.bg : "#FFFFFF" }}
+                  style={{ borderColor: on ? "var(--primary)" : "var(--input-border)", background: on ? r.bg : "#FFFFFF" }}
                 >
                   {r.name}
                 </button>
@@ -137,7 +140,7 @@ function FeedbackContent() {
 
       {!ratedChoice && <div className="flex-grow" />}
 
-      {error && <div className="text-sm text-primary">{error}</div>}
+      {error && <div role="alert" className="text-sm text-primary">{error}</div>}
       <button
         type="button"
         onClick={save}
