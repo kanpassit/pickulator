@@ -134,7 +134,7 @@ function ResultContent() {
         <div className="text-[13px] font-bold tracking-[0.08em] uppercase text-primary">Tonight&apos;s pick</div>
         <div className="bg-white border border-border rounded-[24px] p-6 flex flex-col gap-3.5">
           <div className="flex flex-col gap-1.5">
-            <div className="font-serif text-[34px] font-bold leading-[1.1]">{result.chosenName}</div>
+            <h1 className="m-0 font-serif text-[34px] font-bold leading-[1.1]">{result.chosenName}</h1>
             {meta.source === "claude" ? (
               <div className="text-[15px] text-muted">
                 {[meta.cuisine, meta.priceRange, meta.address].filter(Boolean).join(" · ")}

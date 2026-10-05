@@ -94,9 +94,9 @@ function WaitingContent() {
 
   return (
     <div className="w-full flex-1 box-border px-6 pt-5 pb-6 flex flex-col gap-6">
-      <div className="flex items-center justify-center h-11 text-sm text-muted">{data.group.name}</div>
+      <h1 className="m-0 flex items-center justify-center h-11 text-sm font-normal text-muted">{data.group.name}</h1>
 
-      <div className="flex flex-col items-center gap-1.5 mt-4 text-center">
+      <div role="status" aria-live="polite" className="flex flex-col items-center gap-1.5 mt-4 text-center">
         <div className="font-serif text-[88px] font-bold leading-none text-primary">
           {data.answeredCount} of {data.totalMembers}
         </div>
