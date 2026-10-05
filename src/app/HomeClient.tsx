@@ -265,13 +265,14 @@ export default function HomeClient({ user }: { user: NonNullable<Me> }) {
             </div>
             <form onSubmit={createGroup} className="flex flex-col gap-3">
               <input
+                aria-label="Group name"
                 type="text"
                 placeholder="e.g. The Regulars"
                 value={newGroupName}
                 onChange={(e) => setNewGroupName(e.target.value)}
-                className="box-border h-[52px] px-4 rounded-[14px] border border-[#B8AA98] bg-white text-base"
+                className="box-border h-[52px] px-4 rounded-[14px] border border-input-border bg-white text-base"
               />
-              {error && <div className="text-sm text-primary">{error}</div>}
+              {error && <div role="alert" className="text-sm text-primary">{error}</div>}
               <button
                 type="submit"
                 disabled={creating}
@@ -411,7 +412,7 @@ export default function HomeClient({ user }: { user: NonNullable<Me> }) {
                             {o.ratingSummary.map((r) => (
                               <div
                                 key={r.rating}
-                                className="px-2 py-0.5 rounded-full text-[11px] font-semibold"
+                                className="px-2 py-0.5 rounded-full text-xs font-semibold"
                                 style={{ background: RATING_LABELS[r.rating]?.bg ?? "var(--tint-tan)" }}
                               >
                                 {RATING_LABELS[r.rating]?.label ?? r.rating}

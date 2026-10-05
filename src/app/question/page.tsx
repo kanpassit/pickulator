@@ -144,7 +144,7 @@ function QuestionContent() {
               className="flex-1 min-w-0 box-border h-10 px-2.5 rounded-full border-2 flex items-center gap-2 overflow-hidden"
               style={{
                 borderStyle: on ? "solid" : "dashed",
-                borderColor: on ? "var(--primary)" : "#B8AA98",
+                borderColor: on ? "var(--primary)" : "var(--input-border)",
                 background: on ? "#FFFFFF" : "transparent",
               }}
             >
@@ -174,8 +174,9 @@ function QuestionContent() {
               key={o.id}
               type="button"
               onClick={() => toggle(o.id)}
+              aria-pressed={on}
               className="box-border h-[152px] px-4 py-3.5 rounded-[20px] border-2 bg-white flex flex-col justify-between items-start text-left"
-              style={{ borderColor: on ? "var(--primary)" : "var(--border)", opacity: !on && full ? 0.5 : 1 }}
+              style={{ borderColor: on ? "var(--primary)" : "var(--input-border)", opacity: !on && full ? 0.5 : 1 }}
             >
               <div className="flex items-center justify-between w-full">
                 <div className="w-9 h-9 rounded-full" style={{ background: o.dot }} />
@@ -219,11 +220,12 @@ function QuestionContent() {
               <div
                 key={o.id}
                 className="box-border rounded-2xl border-2 bg-white flex items-center"
-                style={{ borderColor: on ? "var(--primary)" : "var(--border)", opacity: !on && full ? 0.5 : 1 }}
+                style={{ borderColor: on ? "var(--primary)" : "var(--input-border)", opacity: !on && full ? 0.5 : 1 }}
               >
                 <button
                   type="button"
                   onClick={() => toggle(o.id)}
+                  aria-pressed={on}
                   className={`flex-grow min-w-0 p-4 flex items-center gap-3 text-left border-none bg-transparent ${removable ? "pr-2" : ""}`}
                 >
                   <div className="flex-grow min-w-0 flex flex-col gap-0.5">
@@ -273,24 +275,26 @@ function QuestionContent() {
           {isRegistered && showAddForm && (
             <div className="flex flex-col gap-2 p-4 rounded-2xl border-2 bg-white" style={{ borderColor: "var(--border)" }}>
               <input
+                aria-label="Option name"
                 type="text"
                 placeholder="e.g. Poke"
                 value={newLabel}
                 onChange={(e) => setNewLabel(e.target.value)}
                 maxLength={40}
                 className="box-border h-11 px-3 rounded-[10px] border text-base"
-                style={{ borderColor: "var(--border)" }}
+                style={{ borderColor: "var(--input-border)" }}
               />
               <input
+                aria-label="Short hint (optional)"
                 type="text"
                 placeholder="Short hint (optional)"
                 value={newHint}
                 onChange={(e) => setNewHint(e.target.value)}
                 maxLength={80}
                 className="box-border h-11 px-3 rounded-[10px] border text-sm"
-                style={{ borderColor: "var(--border)" }}
+                style={{ borderColor: "var(--input-border)" }}
               />
-              {addError && <div className="text-sm text-primary">{addError}</div>}
+              {addError && <div role="alert" className="text-sm text-primary">{addError}</div>}
               <div className="flex gap-2 mt-1">
                 <button
                   type="button"
@@ -328,14 +332,14 @@ function QuestionContent() {
         </svg>
         <span>Hidden until everyone has answered</span>
       </div>
-      {error && <div className="text-sm text-primary text-center">{error}</div>}
+      {error && <div role="alert" className="text-sm text-primary text-center">{error}</div>}
       <button
         type="button"
         onClick={goNext}
         disabled={!full || !occasionId}
         className="h-14 rounded-[14px] flex items-center justify-center text-[17px] font-semibold border-none disabled:cursor-not-allowed"
         style={{
-          background: full ? "var(--primary)" : "var(--border)",
+          background: full ? "var(--primary)" : "var(--input-border)",
           color: full ? "#FFFFFF" : "var(--muted)",
         }}
       >

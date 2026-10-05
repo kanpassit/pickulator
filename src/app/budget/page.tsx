@@ -50,9 +50,10 @@ function BudgetContent() {
             <button
               key={b.id}
               type="button"
+              aria-pressed={on}
               onClick={() => setBudget(on ? null : b.id)}
               className="box-border h-[104px] px-4 py-3.5 rounded-[20px] border-2 bg-white flex flex-col justify-center items-center gap-1 text-center"
-              style={{ borderColor: on ? "var(--primary)" : "var(--border)" }}
+              style={{ borderColor: on ? "var(--primary)" : "var(--input-border)" }}
             >
               <div className="text-2xl font-bold" style={{ color: on ? "var(--primary)" : "var(--foreground)" }}>
                 {b.name}

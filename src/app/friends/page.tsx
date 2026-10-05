@@ -263,7 +263,7 @@ export default function FriendsPage() {
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto px-6 pt-6 pb-4 flex flex-col gap-3">
-        {error && <div className="text-sm text-primary">{error}</div>}
+        {error && <div role="alert" className="text-sm text-primary">{error}</div>}
 
         <div className="box-border p-4 rounded-2xl border border-border bg-white flex flex-col gap-2.5">
           {addingFriend ? (
@@ -279,7 +279,7 @@ export default function FriendsPage() {
                   value={addFriendEmail}
                   onChange={(e) => setAddFriendEmail(e.target.value)}
                   className="flex-grow min-w-0 box-border h-10 px-3 rounded-[10px] border text-sm"
-                  style={{ borderColor: "var(--border)" }}
+                  style={{ borderColor: "var(--input-border)" }}
                 />
                 <button
                   type="button"
@@ -303,7 +303,7 @@ export default function FriendsPage() {
                   Cancel
                 </button>
               </div>
-              {addFriendError && <div className="text-[13px] text-primary">{addFriendError}</div>}
+              {addFriendError && <div role="alert" className="text-[13px] text-primary">{addFriendError}</div>}
               {addFriendNotice && <div className="text-[13px] text-muted">{addFriendNotice}</div>}
             </div>
           ) : (
@@ -429,12 +429,13 @@ export default function FriendsPage() {
                       <div className="flex flex-col gap-1.5">
                         <div className="flex gap-2">
                           <input
+                            aria-label="Their registered email"
                             type="email"
                             placeholder="their-registered@email.com"
                             value={linkEmailValue}
                             onChange={(e) => setLinkEmailValue(e.target.value)}
                             className="flex-grow min-w-0 box-border h-10 px-3 rounded-[10px] border text-sm"
-                            style={{ borderColor: "var(--border)" }}
+                            style={{ borderColor: "var(--input-border)" }}
                           />
                           <button
                             type="button"
@@ -458,7 +459,7 @@ export default function FriendsPage() {
                             Cancel
                           </button>
                         </div>
-                        {linkError && <div className="text-[13px] text-primary">{linkError}</div>}
+                        {linkError && <div role="alert" className="text-[13px] text-primary">{linkError}</div>}
                       </div>
                     ) : (
                       <button

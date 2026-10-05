@@ -124,9 +124,10 @@ function OccasionContent() {
             <button
               key={o.id}
               type="button"
+              aria-pressed={on}
               onClick={() => chooseOccasion(o.id)}
               className="box-border h-32 p-3.5 rounded-[20px] border-2 bg-white flex flex-col justify-between items-start text-left"
-              style={{ borderColor: on ? "var(--primary)" : "var(--border)" }}
+              style={{ borderColor: on ? "var(--primary)" : "var(--input-border)" }}
             >
               <div className="flex items-center justify-between w-full">
                 <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: o.tint }}>
@@ -160,9 +161,10 @@ function OccasionContent() {
               <button
                 key={d.id}
                 type="button"
+                aria-pressed={on}
                 onClick={() => setDay(d.id)}
                 className="box-border h-11 rounded-full border-2 text-sm font-semibold"
-                style={{ borderColor: on ? "var(--primary)" : "var(--border)", background: on ? "var(--tint-pink)" : "#FFFFFF" }}
+                style={{ borderColor: on ? "var(--primary)" : "var(--input-border)", background: on ? "var(--tint-pink)" : "#FFFFFF" }}
               >
                 {d.name}
               </button>
@@ -176,10 +178,11 @@ function OccasionContent() {
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
+            aria-pressed={timeMode === "SPECIFIC"}
             onClick={() => setTimeMode("SPECIFIC")}
             className="box-border h-11 rounded-full border-2 text-sm font-semibold"
             style={{
-              borderColor: timeMode === "SPECIFIC" ? "var(--primary)" : "var(--border)",
+              borderColor: timeMode === "SPECIFIC" ? "var(--primary)" : "var(--input-border)",
               background: timeMode === "SPECIFIC" ? "var(--tint-pink)" : "#FFFFFF",
             }}
           >
@@ -187,10 +190,11 @@ function OccasionContent() {
           </button>
           <button
             type="button"
+            aria-pressed={timeMode === "FLEXIBLE"}
             onClick={() => setTimeMode("FLEXIBLE")}
             className="box-border h-11 rounded-full border-2 text-sm font-semibold"
             style={{
-              borderColor: timeMode === "FLEXIBLE" ? "var(--primary)" : "var(--border)",
+              borderColor: timeMode === "FLEXIBLE" ? "var(--primary)" : "var(--input-border)",
               background: timeMode === "FLEXIBLE" ? "var(--tint-pink)" : "#FFFFFF",
             }}
           >
@@ -199,11 +203,12 @@ function OccasionContent() {
         </div>
         {timeMode === "SPECIFIC" && (
           <input
+            aria-label="Time"
             type="time"
             step={900}
             value={timeValue}
             onChange={(e) => e.target.value && setTimeValue(e.target.value)}
-            className="box-border h-[52px] px-4 rounded-[14px] border border-[#B8AA98] bg-white text-base"
+            className="box-border h-[52px] px-4 rounded-[14px] border border-input-border bg-white text-base"
           />
         )}
         <div className="text-sm leading-[1.4] text-muted">
@@ -218,11 +223,12 @@ function OccasionContent() {
           Where are you deciding? <span className="font-normal text-muted">(optional)</span>
         </div>
         <input
+          aria-label="Location (optional)"
           type="text"
           placeholder="e.g. San Diego, CA or a zip code"
           value={location}
           onChange={(e) => setLocation(e.target.value)}
-          className="box-border h-[52px] px-4 rounded-[14px] border border-[#B8AA98] bg-white text-base"
+          className="box-border h-[52px] px-4 rounded-[14px] border border-input-border bg-white text-base"
         />
         <div className="text-sm leading-[1.4] text-muted">
           Give me a place to search near and I&apos;ll name an actual restaurant instead of just a cuisine.
@@ -239,9 +245,10 @@ function OccasionContent() {
                 <button
                   key={d.id}
                   type="button"
+                  aria-pressed={on}
                   onClick={() => setMaxDistance(on ? null : d.id)}
                   className="box-border h-11 rounded-full border-2 text-sm font-semibold"
-                  style={{ borderColor: on ? "var(--primary)" : "var(--border)", background: on ? "var(--tint-pink)" : "#FFFFFF" }}
+                  style={{ borderColor: on ? "var(--primary)" : "var(--input-border)", background: on ? "var(--tint-pink)" : "#FFFFFF" }}
                 >
                   {d.name}
                 </button>
@@ -253,9 +260,10 @@ function OccasionContent() {
 
       <button
         type="button"
+        aria-pressed={avoidRepeats}
         onClick={() => setAvoidRepeats((v) => !v)}
         className="box-border p-4 rounded-2xl border-2 bg-white flex items-center gap-3 text-left"
-        style={{ borderColor: avoidRepeats ? "var(--primary)" : "var(--border)" }}
+        style={{ borderColor: avoidRepeats ? "var(--primary)" : "var(--input-border)" }}
       >
         <div className="flex-grow flex flex-col gap-0.5">
           <div className="text-base font-semibold">Give us something new</div>
@@ -264,7 +272,7 @@ function OccasionContent() {
         <div
           className="w-6 h-6 shrink-0 rounded-full border-2 flex items-center justify-center"
           style={{
-            borderColor: avoidRepeats ? "var(--primary)" : "var(--border)",
+            borderColor: avoidRepeats ? "var(--primary)" : "var(--input-border)",
             background: avoidRepeats ? "var(--primary)" : "transparent",
           }}
         >
@@ -277,7 +285,7 @@ function OccasionContent() {
       </button>
 
       <div className="flex-grow" />
-      {error && <div className="text-sm text-primary text-center">{error}</div>}
+      {error && <div role="alert" className="text-sm text-primary text-center">{error}</div>}
       <div className="text-sm leading-[1.45] text-muted text-center">Everyone in the group gets a link to answer 4 quick questions.</div>
       <button
         type="button"

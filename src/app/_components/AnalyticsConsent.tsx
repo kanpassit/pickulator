@@ -64,7 +64,7 @@ export function AnalyticsConsent({ gaId }: { gaId: string }) {
 
       {consent === "unset" && (
         <div
-          role="dialog"
+          role="region"
           aria-label="Analytics preference"
           className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-[480px] box-border rounded-2xl border border-border bg-white p-4 shadow-[0_8px_24px_rgba(42,33,27,0.18)] flex flex-col gap-3"
         >

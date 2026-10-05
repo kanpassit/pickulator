@@ -97,9 +97,10 @@ function DealbreakersContent() {
               key={o.id}
               type="button"
               onClick={() => toggle(o.id)}
+              aria-pressed={on}
               className="box-border h-11 px-4 rounded-full border-2 text-[15px] font-semibold"
               style={{
-                borderColor: on ? "var(--primary)" : "var(--border)",
+                borderColor: on ? "var(--primary)" : "var(--input-border)",
                 background: on ? "var(--primary)" : "#FFFFFF",
                 color: on ? "#FFFFFF" : "var(--foreground)",
               }}
@@ -111,7 +112,7 @@ function DealbreakersContent() {
       </div>
 
       <div className="flex-grow" />
-      {error && <div className="text-sm text-primary text-center">{error}</div>}
+      {error && <div role="alert" className="text-sm text-primary text-center">{error}</div>}
       <button
         type="button"
         onClick={submit}

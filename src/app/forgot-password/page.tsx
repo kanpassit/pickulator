@@ -66,10 +66,10 @@ export default function ForgotPasswordPage() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="box-border h-[52px] px-4 rounded-[14px] border border-[#B8AA98] bg-white text-base"
+            className="box-border h-[52px] px-4 rounded-[14px] border border-input-border bg-white text-base"
           />
         </div>
-        {error && <div className="text-sm text-primary">{error}</div>}
+        {error && <div role="alert" className="text-sm text-primary">{error}</div>}
         <button
           type="submit"
           disabled={busy}

@@ -4,7 +4,7 @@ import { CONTACT_EMAIL, LEGAL_LAST_UPDATED } from "@/lib/site";
 
 export default function LegalPage({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <main className="w-full flex-1 box-border px-6 pt-6 pb-12">
+    <div className="w-full flex-1 box-border px-6 pt-6 pb-12">
       <div className="max-w-[680px] mx-auto flex flex-col gap-5">
         <Link href="/" className="text-sm font-semibold no-underline">
           ← Pickulator
@@ -25,8 +25,9 @@ export default function LegalPage({ title, children }: { title: string; children
         <div className="flex gap-4 text-sm pt-4 border-t border-border">
           <Link href="/privacy">Privacy</Link>
           <Link href="/terms">Terms</Link>
+          <Link href="/accessibility">Accessibility</Link>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

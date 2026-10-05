@@ -7,6 +7,7 @@
   --primary: #C23B20;
   --primary-hover: #8F2A15;
   --border: #E6DCCB;
+  --input-border: #857665;
   --tint-yellow: #F3E3B5;
   --tint-pink: #F6DDD4;
   --tint-green: #E6EAD3;
@@ -25,6 +26,7 @@
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
   --color-border: var(--border);
+  --color-input-border: var(--input-border);
   --color-tint-yellow: var(--tint-yellow);
   --color-tint-pink: var(--tint-pink);
   --color-tint-green: var(--tint-green);
@@ -51,10 +53,26 @@
     font-family: var(--font-sans), system-ui, sans-serif;
   }
 
+  :focus-visible {
+    outline: 3px solid var(--primary);
+    outline-offset: 2px;
+  }
+
   a {
     color: var(--primary);
   }
   a:hover {
     color: var(--primary-hover);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

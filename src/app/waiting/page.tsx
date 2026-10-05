@@ -131,7 +131,7 @@ function WaitingContent() {
 
       {isHost && (
         <div className="flex flex-col gap-3">
-          {error && <div className="text-sm text-primary text-center">{error}</div>}
+          {error && <div role="alert" className="text-sm text-primary text-center">{error}</div>}
           {data.answeredCount < data.totalMembers && (
             <button
               type="button"
