@@ -172,7 +172,7 @@ function ResultContent() {
               rel="noreferrer"
               className="text-sm font-semibold text-primary"
             >
-              View source →
+              View source →<span className="sr-only"> (opens in a new tab)</span>
             </a>
           )}
         </div>
@@ -187,7 +187,7 @@ function ResultContent() {
               rel="noreferrer"
               className="h-14 box-border rounded-[14px] bg-primary text-white flex items-center justify-center text-[17px] font-semibold no-underline"
             >
-              Get directions
+              Get directions<span className="sr-only"> (opens in a new tab)</span>
             </a>
             <div className="grid grid-cols-2 gap-2.5">
               <a
@@ -196,7 +196,7 @@ function ResultContent() {
                 rel="noreferrer"
                 className="h-12 box-border rounded-[12px] border-2 border-border bg-white text-[#2A211B] flex items-center justify-center text-[15px] font-semibold no-underline"
               >
-                Reviews &amp; hours
+                Reviews &amp; hours<span className="sr-only"> (opens in a new tab)</span>
               </a>
               {isReservable(data.occasion.type) ? (
                 <a
@@ -205,7 +205,7 @@ function ResultContent() {
                   rel="noreferrer"
                   className="h-12 box-border rounded-[12px] border-2 border-border bg-white text-[#2A211B] flex items-center justify-center text-[15px] font-semibold no-underline"
                 >
-                  Reserve a table
+                  Reserve a table<span className="sr-only"> (opens in a new tab)</span>
                 </a>
               ) : (
                 <a
@@ -214,7 +214,7 @@ function ResultContent() {
                   rel="noreferrer"
                   className="h-12 box-border rounded-[12px] border-2 border-border bg-white text-[#2A211B] flex items-center justify-center text-[15px] font-semibold no-underline"
                 >
-                  See on Yelp
+                  See on Yelp<span className="sr-only"> (opens in a new tab)</span>
                 </a>
               )}
             </div>
@@ -226,7 +226,7 @@ function ResultContent() {
             rel="noreferrer"
             className="h-14 box-border rounded-[14px] bg-primary text-white flex items-center justify-center text-[17px] font-semibold no-underline"
           >
-            Find {result.chosenName} nearby
+            Find {result.chosenName} nearby<span className="sr-only"> (opens in a new tab)</span>
           </a>
         )}
         <button

@@ -3,6 +3,7 @@ import { Fraunces, DM_Sans } from "next/font/google";
 import { Suspense } from "react";
 import { AnalyticsConsent } from "./_components/AnalyticsConsent";
 import { GoogleAnalyticsPageView } from "./_components/GoogleAnalyticsPageView";
+import { RouteFocus } from "./_components/RouteFocus";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -62,6 +63,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <main id="main-content" tabIndex={-1} className="w-full flex-1 flex flex-col focus:outline-none">
           {children}
         </main>
+        <RouteFocus />
         <AnalyticsConsent gaId={GA_MEASUREMENT_ID} />
         <Suspense fallback={null}>
           <GoogleAnalyticsPageView gaId={GA_MEASUREMENT_ID} />
