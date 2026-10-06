@@ -39,6 +39,15 @@ function choose(value: "granted" | "denied") {
     // ignore - the in-memory event below still updates this page view
   }
   window.dispatchEvent(new Event(CHANGE_EVENT));
+  // The banner unmounts with the button that was just used, which would drop
+  // keyboard focus to <body>. Move it to the page's main landmark instead.
+  window.setTimeout(() => {
+    const main = document.getElementById("main-content") ?? document.querySelector("main");
+    if (main instanceof HTMLElement) {
+      if (!main.hasAttribute("tabindex")) main.setAttribute("tabindex", "-1");
+      main.focus({ preventScroll: true });
+    }
+  }, 0);
 }
 
 export function AnalyticsConsent({ gaId }: { gaId: string }) {
